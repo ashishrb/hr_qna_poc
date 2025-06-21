@@ -138,6 +138,53 @@ class FixedAzureSearchIndexer:
             SimpleField(name="performance_rating", type=SearchFieldDataType.Int32, filterable=True),
             SimpleField(name="engagement_score", type=SearchFieldDataType.Int32, filterable=True),
             SearchableField(name="combined_text", type=SearchFieldDataType.String, analyzer_name="standard.lucene"),
+
+            SimpleField(name="work_mode", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SimpleField(name="employment_type", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SimpleField(name="grade_band", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            
+            # Performance fields
+            SearchableField(name="kpis_met_pct", type=SearchFieldDataType.String),
+            SearchableField(name="awards", type=SearchFieldDataType.String),
+            
+            # Attrition and retention
+            SimpleField(name="attrition_risk_score", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SimpleField(name="exit_intent_flag", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SearchableField(name="retention_plan", type=SearchFieldDataType.String),
+            
+            # Engagement and projects
+            SimpleField(name="multiple_project_allocations", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SimpleField(name="peer_review_score", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="days_on_bench", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SearchableField(name="allocation_percentage", type=SearchFieldDataType.String),
+            
+            # Attendance and leave
+            SearchableField(name="monthly_attendance_pct", type=SearchFieldDataType.String),
+            SimpleField(name="leave_days_taken", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="leave_balance", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SearchableField(name="leave_pattern", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            
+            # Learning and training
+            SimpleField(name="courses_completed", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="internal_trainings", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="learning_hours_ytd", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            
+            # Experience details
+            SimpleField(name="years_in_current_company", type=SearchFieldDataType.Double, filterable=True, sortable=True),
+            SimpleField(name="years_in_current_skillset", type=SearchFieldDataType.Double, filterable=True, sortable=True),
+            SimpleField(name="known_skills_count", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="previous_companies_resigned", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            
+            # Personal details
+            SimpleField(name="age", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="gender", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            SimpleField(name="marital_status", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            
+            # Compensation (sensitive but useful for analytics)
+            SimpleField(name="current_salary", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="total_ctc", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
+            SimpleField(name="currency", type=SearchFieldDataType.String, filterable=True, facetable=True),
+            
             SearchField(
                 name="content_vector",
                 type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
@@ -222,13 +269,29 @@ class FixedAzureSearchIndexer:
             return False
     
     def prepare_document_for_indexing(self, employee_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Prepare employee document for search indexing with proper field mapping"""
+        """Enhanced document preparation with ALL MongoDB fields"""
         from datetime import datetime
         
-        # Create combined text for better search
+        # Helper function for safe type conversion
+        def safe_int(value):
+            try:
+                return int(value) if value is not None and str(value).strip() else 0
+            except (ValueError, TypeError):
+                return 0
+        
+        def safe_float(value):
+            try:
+                return float(value) if value is not None and str(value).strip() else 0.0
+            except (ValueError, TypeError):
+                return 0.0
+        
+        def safe_str(value):
+            return str(value) if value is not None else ""
+        
+        # Create enhanced combined text with MORE fields
         combined_parts = []
         
-        # Add basic info
+        # Basic info
         if employee_data.get('full_name'):
             combined_parts.append(f"Name: {employee_data['full_name']}")
         if employee_data.get('department'):
@@ -238,17 +301,31 @@ class FixedAzureSearchIndexer:
         if employee_data.get('location'):
             combined_parts.append(f"Location: {employee_data['location']}")
         
-        # Add skills and certifications
+        # Work arrangements
+        if employee_data.get('work_mode'):
+            combined_parts.append(f"Work Mode: {employee_data['work_mode']}")
+        if employee_data.get('employment_type'):
+            combined_parts.append(f"Employment Type: {employee_data['employment_type']}")
+        
+        # Skills and certifications
         if employee_data.get('certifications'):
             combined_parts.append(f"Certifications: {employee_data['certifications']}")
         if employee_data.get('current_project'):
             combined_parts.append(f"Current Project: {employee_data['current_project']}")
-        if employee_data.get('improvement_areas'):
-            combined_parts.append(f"Improvement Areas: {employee_data['improvement_areas']}")
         
-        # Add experience info
+        # Performance and engagement
+        if employee_data.get('performance_rating'):
+            combined_parts.append(f"Performance Rating: {employee_data['performance_rating']}")
+        if employee_data.get('attrition_risk_score'):
+            combined_parts.append(f"Attrition Risk: {employee_data['attrition_risk_score']}")
+        if employee_data.get('multiple_project_allocations'):
+            combined_parts.append(f"Multiple Projects: {employee_data['multiple_project_allocations']}")
+        
+        # Experience and skills
         if employee_data.get('total_experience_years'):
             combined_parts.append(f"Experience: {employee_data['total_experience_years']} years")
+        if employee_data.get('improvement_areas'):
+            combined_parts.append(f"Improvement Areas: {employee_data['improvement_areas']}")
         
         combined_text = " | ".join(combined_parts)
         
@@ -264,28 +341,96 @@ class FixedAzureSearchIndexer:
                     return None
             return None
         
-        # Create search document with proper field mapping
+        # CREATE COMPREHENSIVE search document with ALL fields
         search_doc = {
+            # Core identification
             "id": f"emp_{employee_data.get('employee_id')}",
-            "employee_id": str(employee_data.get('employee_id', '')),
-            "full_name": employee_data.get('full_name', ''),
-            "email": employee_data.get('email', ''),
-            "department": employee_data.get('department', ''),
-            "role": employee_data.get('role', ''),  # This is the position field
-            "location": employee_data.get('location', ''),
-            "certifications": str(employee_data.get('certifications', '')),  # This is skills
-            "current_project": str(employee_data.get('current_project', '')),
-            "improvement_areas": str(employee_data.get('improvement_areas', '')),
-            "manager_feedback": str(employee_data.get('manager_feedback', '')),
-            "total_experience_years": float(employee_data.get('total_experience_years', 0)) if employee_data.get('total_experience_years') else 0,
-            "performance_rating": int(employee_data.get('performance_rating', 0)) if employee_data.get('performance_rating') else 0,
-            "engagement_score": int(employee_data.get('engagement_score', 0)) if employee_data.get('engagement_score') else 0,
+            "employee_id": safe_str(employee_data.get('employee_id', '')),
+            
+            # Personal information
+            "full_name": safe_str(employee_data.get('full_name', '')),
+            "email": safe_str(employee_data.get('email', '')),
+            "age": safe_int(employee_data.get('age')),
+            "gender": safe_str(employee_data.get('gender', '')),
+            "marital_status": safe_str(employee_data.get('marital_status', '')),
+            "location": safe_str(employee_data.get('location', '')),
+            
+            # Employment details
+            "department": safe_str(employee_data.get('department', '')),
+            "role": safe_str(employee_data.get('role', '')),
+            "grade_band": safe_str(employee_data.get('grade_band', '')),
+            "employment_type": safe_str(employee_data.get('employment_type', '')),
+            "work_mode": safe_str(employee_data.get('work_mode', '')),
+            
+            # Skills and learning
+            "certifications": safe_str(employee_data.get('certifications', '')),
+            "courses_completed": safe_int(employee_data.get('courses_completed')),
+            "internal_trainings": safe_int(employee_data.get('internal_trainings')),
+            "learning_hours_ytd": safe_int(employee_data.get('learning_hours_ytd')),
+            
+            # Experience
+            "total_experience_years": safe_float(employee_data.get('total_experience_years')),
+            "years_in_current_company": safe_float(employee_data.get('years_in_current_company')),
+            "years_in_current_skillset": safe_float(employee_data.get('years_in_current_skillset')),
+            "known_skills_count": safe_int(employee_data.get('known_skills_count')),
+            "previous_companies_resigned": safe_int(employee_data.get('previous_companies_resigned')),
+            
+            # Performance
+            "performance_rating": safe_int(employee_data.get('performance_rating')),
+            "kpis_met_pct": safe_str(employee_data.get('kpis_met_pct', '')),
+            "awards": safe_str(employee_data.get('awards', '')),
+            "improvement_areas": safe_str(employee_data.get('improvement_areas', '')),
+            
+            # Engagement and projects
+            "current_project": safe_str(employee_data.get('current_project', '')),
+            "engagement_score": safe_int(employee_data.get('engagement_score')),
+            "multiple_project_allocations": safe_str(employee_data.get('multiple_project_allocations', '')),
+            "allocation_percentage": safe_str(employee_data.get('allocation_percentage', '')),
+            "peer_review_score": safe_int(employee_data.get('peer_review_score')),
+            "manager_feedback": safe_str(employee_data.get('manager_feedback', '')),
+            "days_on_bench": safe_int(employee_data.get('days_on_bench')),
+            
+            # Attrition and retention
+            "attrition_risk_score": safe_str(employee_data.get('attrition_risk_score', '')),
+            "exit_intent_flag": safe_str(employee_data.get('exit_intent_flag', '')),
+            "retention_plan": safe_str(employee_data.get('retention_plan', '')),
+            
+            # Attendance and leave
+            "monthly_attendance_pct": safe_str(employee_data.get('monthly_attendance_pct', '')),
+            "leave_days_taken": safe_int(employee_data.get('leave_days_taken')),
+            "leave_balance": safe_int(employee_data.get('leave_balance')),
+            "leave_pattern": safe_str(employee_data.get('leave_pattern', '')),
+            
+            # Compensation (sensitive data)
+            "current_salary": safe_int(employee_data.get('current_salary')),
+            "total_ctc": safe_int(employee_data.get('total_ctc')),
+            "currency": safe_str(employee_data.get('currency', '')),
+            
+            # Enhanced combined text
             "combined_text": combined_text,
+            
+            # Metadata
             "created_at": format_datetime(datetime.utcnow().isoformat()),
             "updated_at": format_datetime(datetime.utcnow().isoformat())
         }
         
         return search_doc
+
+
+    # 3. USAGE INSTRUCTIONS:
+
+    print("🔧 TO IMPLEMENT THESE FIXES:")
+    print("1. Replace the fields list in create_hr_search_index() with the enhanced version")
+    print("2. Replace prepare_document_for_indexing() method with the enhanced version")
+    print("3. Run: python src/search/fixed_indexer.py")
+    print("4. This will recreate the index with ALL MongoDB fields")
+    print("")
+    print("✅ AFTER THIS FIX, these queries will work:")
+    print("- 'How many employees working in Hybrid mode'")
+    print("- 'Find high-performing employees'") 
+    print("- 'Show employees with high attrition risk'")
+    print("- 'How many employees took maximum leave'")
+    print("- 'Find employees working on multiple projects'")
     
     async def index_all_employees(self):
         """Index all employees by combining data from multiple collections"""

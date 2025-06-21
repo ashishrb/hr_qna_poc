@@ -1,0 +1,290 @@
+Starting Query Engine Dry Run
+🤖 HR Query Engine - Dry Run Testing
+============================================================
+Testing with REAL employee data from MongoDB
+📊 Available data: 25 employees across 10 collections
+============================================================
+✅ Query engine initialized successfully
+
+🔍 Testing 10 different query types...
+============================================================
+
+📝 Test 1: Employee Search
+🔍 Query: 'Who are the developers in our company?'
+📋 Expected: Should find employees with role='Developer'
+--------------------------------------------------
+🔍 Processing query: 'Who are the developers in our company?'
+   🎯 Intent: employee_search
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': 'Developer'}
+   📊 Found 5 relevant results
+🎯 Intent Detected: employee_search
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': 'Developer'}
+📈 Search Results: 5 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Krista Griffin - IT - Developer
+      🏆 Certifications: AWS
+   2. Christina Mcfarland - Sales - Developer
+      🏆 Certifications: GCP
+   3. Justin Lee - Operations - Developer
+      🏆 Certifications: PMP
+💬 AI Response: Here are the developers in our company:
+
+1. **Krista Griffin**
+   - Department: IT
+   - Location: Chennai
+   - Certifications: AWS
+   - Current Project: Innovate B2C Applications
+
+2. **Christina Mcfar...
+============================================================
+
+📝 Test 2: Department Search
+🔍 Query: 'Find employees in Sales department'
+📋 Expected: Should find employees from Sales dept
+--------------------------------------------------
+🔍 Processing query: 'Find employees in Sales department'
+   🎯 Intent: employee_search
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': 'Sales', 'location': None, 'position': None}
+   📊 Found 5 relevant results
+🎯 Intent Detected: employee_search
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': 'Sales', 'location': None, 'position': None}
+📈 Search Results: 5 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Kyle Taylor - Sales - Director
+      🏆 Certifications: Azure
+   2. Rachel Clarke - Sales - Lead
+      🏆 Certifications: GCP
+   3. Mary Alvarado - Sales - Analyst
+      🏆 Certifications: PMP
+💬 AI Response: Here are the employees in the Sales department:
+
+1. **Kyle Taylor**
+   - Role: Director
+   - Location: Offshore
+   - Certifications: Azure
+   - Current Project: Embrace Collaborative Convergence
+
+2. *...
+============================================================
+
+📝 Test 3: Count Query
+🔍 Query: 'How many people work in Sales?'
+📋 Expected: Should count Sales employees
+--------------------------------------------------
+🔍 Processing query: 'How many people work in Sales?'
+   🎯 Intent: count_query
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': 'Sales', 'location': None, 'position': None}
+   📊 Count: 6
+🎯 Intent Detected: count_query
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': 'Sales', 'location': None, 'position': None}
+📈 Search Results: 0 employees found
+✅ Status: SUCCESS
+📊 Count Result: 6 employees
+💬 AI Response: There are 6 employees in the Sales department....
+============================================================
+
+📝 Test 4: Skill Search
+🔍 Query: 'Find employees with GCP certification'
+📋 Expected: Should find employees with GCP skills
+--------------------------------------------------
+🔍 Processing query: 'Find employees with GCP certification'
+   🎯 Intent: skill_search
+   📋 Entities: {'employee_name': None, 'skills': ['GCP'], 'department': None, 'location': None, 'position': None}
+   📊 Found 4 relevant results
+🎯 Intent Detected: skill_search
+📊 Entities Found: {'employee_name': None, 'skills': ['GCP'], 'department': None, 'location': None, 'position': None}
+📈 Search Results: 4 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Rachel Clarke - Sales - Lead
+      🏆 Certifications: GCP
+   2. Christina Mcfarland - Sales - Developer
+      🏆 Certifications: GCP
+   3. Cassandra Pham - HR - Analyst
+      🏆 Certifications: GCP
+💬 AI Response: Here are the employees with GCP certification:
+
+1. **Rachel Clarke**
+   - **Department:** Sales
+   - **Role:** Lead
+   - **Location:** Chennai
+   - **Current Project:** Redefine Dynamic Users
+
+2. **Ch...
+============================================================
+
+📝 Test 5: Skill Search
+🔍 Query: 'Who has cloud certifications?'
+📋 Expected: Should find GCP/AWS certified employees
+--------------------------------------------------
+🔍 Processing query: 'Who has cloud certifications?'
+   🎯 Intent: general_info
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Found 5 relevant results
+🎯 Intent Detected: general_info
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+📈 Search Results: 5 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Caitlyn Johnson - Legal - Analyst
+      🏆 Certifications: PMP
+   2. Krista Griffin - IT - Developer
+      🏆 Certifications: AWS
+   3. Kathryn Price - IT - Director
+      🏆 Certifications: Azure
+💬 AI Response: The following employees have cloud certifications:
+
+1. **Krista Griffin**
+   - Department: IT
+   - Role: Developer
+   - Location: Chennai
+   - Certification: AWS
+
+2. **Kathryn Price**
+   - Department:...
+============================================================
+
+📝 Test 6: Location Search
+🔍 Query: 'Find Offshore employees'
+📋 Expected: Should find employees in Offshore location
+--------------------------------------------------
+🔍 Processing query: 'Find Offshore employees'
+   🎯 Intent: employee_search
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': 'Offshore', 'position': None}
+   📊 Found 5 relevant results
+🎯 Intent Detected: employee_search
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': 'Offshore', 'position': None}
+📈 Search Results: 5 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Kyle Taylor - Sales - Director
+      🏆 Certifications: Azure
+   2. Robert Wright - IT - Manager
+      🏆 Certifications: Azure
+   3. Caitlyn Johnson - Legal - Analyst
+      🏆 Certifications: PMP
+💬 AI Response: Here are the employees located Offshore:
+
+1. **Kyle Taylor**
+   - Department: Sales
+   - Role: Director
+   - Certifications: Azure
+   - Current Project: Embrace Collaborative Convergence
+
+2. **Robert ...
+============================================================
+
+📝 Test 7: Work Mode Search
+🔍 Query: 'Show me employees working in Hybrid mode'
+📋 Expected: Should find work_mode='Hybrid' employees
+--------------------------------------------------
+🔍 Processing query: 'Show me employees working in Hybrid mode'
+   🎯 Intent: employee_search
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Found 0 relevant results
+🎯 Intent Detected: employee_search
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+📈 Search Results: 0 employees found
+✅ Status: SUCCESS
+💬 AI Response: I couldn't find any employees matching your criteria. You searched for: Show me employees working in Hybrid mode. Please try a different search or check if the information exists in our system....
+============================================================
+
+📝 Test 8: Performance Search
+🔍 Query: 'Find high-performing employees'
+📋 Expected: Should find employees with high performance ratings
+--------------------------------------------------
+🔍 Processing query: 'Find high-performing employees'
+   🎯 Intent: employee_search
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Found 0 relevant results
+🎯 Intent Detected: employee_search
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+📈 Search Results: 0 employees found
+✅ Status: SUCCESS
+💬 AI Response: I couldn't find any employees matching your criteria. You searched for: Find high-performing employees. Please try a different search or check if the information exists in our system....
+============================================================
+
+📝 Test 9: Attrition Search
+🔍 Query: 'Show employees with high attrition risk'
+📋 Expected: Should find attrition_risk_score='High' employees
+--------------------------------------------------
+🔍 Processing query: 'Show employees with high attrition risk'
+   🎯 Intent: general_info
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Found 0 relevant results
+🎯 Intent Detected: general_info
+📊 Entities Found: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+📈 Search Results: 0 employees found
+✅ Status: SUCCESS
+💬 AI Response: I couldn't find any employees matching your criteria. You searched for: Show employees with high attrition risk. Please try a different search or check if the information exists in our system....
+============================================================
+
+📝 Test 10: Complex Search
+🔍 Query: 'Find developers with GCP certification in Sales department'
+📋 Expected: Complex multi-filter search
+--------------------------------------------------
+🔍 Processing query: 'Find developers with GCP certification in Sales department'
+   🎯 Intent: skill_search
+   📋 Entities: {'employee_name': None, 'skills': ['GCP'], 'department': 'Sales', 'location': None, 'position': 'Developer'}
+   📊 Found 5 relevant results
+🎯 Intent Detected: skill_search
+📊 Entities Found: {'employee_name': None, 'skills': ['GCP'], 'department': 'Sales', 'location': None, 'position': 'Developer'}
+📈 Search Results: 5 employees found
+✅ Status: SUCCESS
+👥 Top Results:
+   1. Rachel Clarke - Sales - Lead
+      🏆 Certifications: GCP
+   2. Christina Mcfarland - Sales - Developer
+      🏆 Certifications: GCP
+   3. Kyle Taylor - Sales - Director
+      🏆 Certifications: Azure
+💬 AI Response: Here is the information on developers with GCP certification in the Sales department:
+
+- **Christina Mcfarland**
+  - **Role:** Developer
+  - **Department:** Sales
+  - **Location:** Offshore
+  - **Cert...
+============================================================
+
+📈 DRY RUN SUMMARY
+==============================
+✅ Successful queries: 10/10
+📊 Success rate: 100.0%
+🎉 ALL TESTS PASSED! Query engine working perfectly with real data.
+
+🎮 Would you like to try interactive testing? (y/n): y
+
+🎮 Interactive Query Testing
+Type your questions or 'quit' to exit
+========================================
+
+💬 Enter your HR question: How many working on multiple projects
+
+🔄 Processing: 'How many working on multiple projects'
+🔍 Processing query: 'How many working on multiple projects'
+   🎯 Intent: count_query
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Count: 25
+🎯 Intent: count_query
+📊 Found: 0 employees
+💬 Response: There are 25 employees in the company.
+
+💬 Enter your HR question: How many employees took maximum leave
+
+🔄 Processing: 'How many employees took maximum leave'
+🔍 Processing query: 'How many employees took maximum leave'
+   🎯 Intent: count_query
+   📋 Entities: {'employee_name': None, 'skills': [], 'department': None, 'location': None, 'position': None}
+   📊 Count: 25
+🎯 Intent: count_query
+📊 Found: 0 employees
+💬 Response: There are 25 employees in the company.
+
+💬 Enter your HR question: quit
+
+👋 Interactive testing ended
+
+🎯 Query Engine Dry Run Complete!
