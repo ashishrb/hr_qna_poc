@@ -5,6 +5,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from openai import AzureOpenAI
+#import openai
 
 # Set environment variables
 os.environ["MONGODB_CONNECTION_STRING"] = "mongodb+srv://Ashish:test1234@cluster0.ydw4hcc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -39,12 +40,15 @@ async def test_all_connections():
     
     # Test 3: Azure OpenAI
     try:
-        openai_client = AzureOpenAI(
+        from openai import AzureOpenAI
+        
+        client = AzureOpenAI(
             api_key=os.environ["AZURE_OPENAI_API_KEY"],
             api_version="2023-05-15",
             azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"]
         )
-        response = openai_client.chat.completions.create(
+        
+        response = client.chat.completions.create(
             model="gpt-4o-llm",
             messages=[{"role": "user", "content": "Hello"}],
             max_tokens=5
