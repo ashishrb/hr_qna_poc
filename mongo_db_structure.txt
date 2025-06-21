@@ -1,0 +1,173 @@
+MongoDB Data Structure Analysis
+==================================================
+📊 Found 10 collections:
+   - project_history: 62 documents
+   - employment: 25 documents
+   - engagement: 25 documents
+   - personal_info: 25 documents
+   - attendance: 25 documents
+   - experience: 25 documents
+   - compensation: 25 documents
+   - learning: 25 documents
+   - attrition: 25 documents
+   - performance: 25 documents
+
+📋 Collection: project_history
+------------------------------
+🔍 Sample document structure:
+   project_name: Revolutionize World-Class Roi
+   project_start_date: 2025-05-29T00:00:00
+   project_end_date: 2025-05-29T00:00:00
+   project_success: Partially Successful
+   client_feedback: Excellent
+   contribution_level: Individual Contributor
+   employee_id: EMP123456
+   created_at: 2025-06-21T09:15:34.475200
+   updated_at: 2025-06-21T09:15:34.475200
+
+📊 All fields in this collection:
+   Fields: client_feedback, contribution_level, employee_id, project_end_date, project_name, project_start_date, project_success
+
+📋 Collection: employment
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   department: Sales
+   role: Developer
+   grade_band: L3
+   employment_type: Permanent
+   manager_id: EMP123479
+   joining_date: 2021-10-17
+   work_mode: Hybrid
+   created_at: 2025-06-21T09:15:32.559811
+   updated_at: 2025-06-21T09:15:32.559811
+
+📊 All fields in this collection:
+   Fields: department, employee_id, employment_type, grade_band, joining_date, manager_id, role, work_mode
+
+📋 Collection: engagement
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   current_project: Visualize Out-Of-The-Box Platforms
+   allocation_percentage: 79%
+   multiple_project_allocations: Yes
+   peer_review_score: 5
+   manager_feedback: Good
+   days_on_bench: 38
+   engagement_score: 10
+   created_at: 2025-06-21T09:15:33.011722
+   updated_at: 2025-06-21T09:15:33.011722
+
+📊 All fields in this collection:
+   Fields: allocation_percentage, current_project, days_on_bench, employee_id, engagement_score, manager_feedback, multiple_project_allocations, peer_review_score
+
+📋 Collection: personal_info
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   full_name: Christina Mcfarland
+   age: 30
+   gender: Male
+   marital_status: Married
+   location: Offshore
+   nationality: Indian
+   contact_number: (043)638-1373x5964
+   email: hunter06@gmail.com
+   emergency_contact: 578-796-5445x043
+   address: 89554 Amanda Center
+East Jenniferville, HI 11935
+   created_at: 2025-06-21T09:15:32.346615
+   updated_at: 2025-06-21T09:15:32.346615
+
+📊 All fields in this collection:
+   Fields: address, age, contact_number, email, emergency_contact, employee_id, full_name, gender, location, marital_status, nationality
+
+📋 Collection: attendance
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   monthly_attendance_pct: 97%
+   leave_days_taken: 24
+   leave_balance: 6
+   leave_pattern: Rare
+   leave_transaction_count: 7
+   created_at: 2025-06-21T09:15:33.845702
+   updated_at: 2025-06-21T09:15:33.845702
+
+📊 All fields in this collection:
+   Fields: employee_id, leave_balance, leave_days_taken, leave_pattern, leave_transaction_count, monthly_attendance_pct
+
+📋 Collection: experience
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   total_experience_years: 3.1
+   years_in_current_company: 2.5
+   years_in_current_skillset: 1.2
+   known_skills_count: 11
+   previous_companies_resigned: 4
+   created_at: 2025-06-21T09:15:34.054837
+   updated_at: 2025-06-21T09:15:34.054837
+
+📊 All fields in this collection:
+   Fields: employee_id, known_skills_count, previous_companies_resigned, total_experience_years, years_in_current_company, years_in_current_skillset
+
+📋 Collection: compensation
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   current_salary: 792406
+   bonus: 190526
+   total_ctc: 982932
+   currency: INR
+   last_appraisal_date: 2024-09-14T00:00:00
+   created_at: 2025-06-21T09:15:33.429158
+   updated_at: 2025-06-21T09:15:33.429158
+
+📊 All fields in this collection:
+   Fields: bonus, currency, current_salary, employee_id, last_appraisal_date, total_ctc
+
+📋 Collection: learning
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   courses_completed: 8
+   certifications: GCP
+   internal_trainings: 4
+   learning_hours_ytd: 53
+   created_at: 2025-06-21T09:15:33.222793
+   updated_at: 2025-06-21T09:15:33.222793
+
+📊 All fields in this collection:
+   Fields: certifications, courses_completed, employee_id, internal_trainings, learning_hours_ytd
+
+📋 Collection: attrition
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   attrition_risk_score: High
+   internal_transfers: 1
+   exit_intent_flag: No
+   retention_plan: Compensation Review
+   created_at: 2025-06-21T09:15:34.265627
+   updated_at: 2025-06-21T09:15:34.265627
+
+📊 All fields in this collection:
+   Fields: attrition_risk_score, employee_id, exit_intent_flag, internal_transfers, retention_plan
+
+📋 Collection: performance
+------------------------------
+🔍 Sample document structure:
+   employee_id: EMP123456
+   performance_rating: 2
+   kpis_met_pct: 67%
+   promotions_count: 1
+   awards: None
+   improvement_areas: Communication
+   last_review_date: 2024-08-19T00:00:00
+   created_at: 2025-06-21T09:15:32.776843
+   updated_at: 2025-06-21T09:15:32.776843
+
+📊 All fields in this collection:
+   Fields: awards, employee_id, improvement_areas, kpis_met_pct, last_review_date, performance_rating, promotions_count
