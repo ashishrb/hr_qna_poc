@@ -1,0 +1,593 @@
+{
+  "employee_schema": {
+    "version": "1.0.0",
+    "description": "Complete employee data schema for HR Q&A system",
+    "collections": {
+      "personal_info": {
+        "description": "Personal information of employees",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "description": "Unique employee identifier"
+          },
+          "full_name": {
+            "type": "string",
+            "required": true,
+            "searchable": true,
+            "description": "Full name of the employee"
+          },
+          "email": {
+            "type": "string",
+            "required": true,
+            "format": "email",
+            "searchable": true,
+            "description": "Employee email address"
+          },
+          "age": {
+            "type": "integer",
+            "min": 18,
+            "max": 70,
+            "description": "Employee age"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Male", "Female", "Other"],
+            "description": "Employee gender"
+          },
+          "marital_status": {
+            "type": "string",
+            "enum": ["Single", "Married", "Divorced", "Widowed"],
+            "description": "Marital status"
+          },
+          "location": {
+            "type": "string",
+            "required": true,
+            "filterable": true,
+            "facetable": true,
+            "description": "Employee location/city"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "Employee nationality"
+          },
+          "contact_number": {
+            "type": "string",
+            "description": "Contact phone number"
+          },
+          "emergency_contact": {
+            "type": "string",
+            "description": "Emergency contact information"
+          },
+          "address": {
+            "type": "string",
+            "description": "Full address"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "employment": {
+        "description": "Employment details and job information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "department": {
+            "type": "string",
+            "required": true,
+            "filterable": true,
+            "facetable": true,
+            "searchable": true,
+            "description": "Department/division"
+          },
+          "role": {
+            "type": "string",
+            "required": true,
+            "filterable": true,
+            "facetable": true,
+            "searchable": true,
+            "description": "Job role/position"
+          },
+          "grade_band": {
+            "type": "string",
+            "filterable": true,
+            "description": "Employee grade or level"
+          },
+          "employment_type": {
+            "type": "string",
+            "enum": ["Full-time", "Part-time", "Contract", "Intern"],
+            "filterable": true,
+            "description": "Type of employment"
+          },
+          "manager_id": {
+            "type": "string",
+            "indexed": true,
+            "description": "Manager's employee ID"
+          },
+          "joining_date": {
+            "type": "date",
+            "required": true,
+            "description": "Date of joining the company"
+          },
+          "work_mode": {
+            "type": "string",
+            "enum": ["Remote", "Onsite", "Hybrid"],
+            "filterable": true,
+            "description": "Work mode preference"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "learning": {
+        "description": "Learning, training, and certification information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "courses_completed": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of courses completed"
+          },
+          "certifications": {
+            "type": "string",
+            "searchable": true,
+            "description": "Comma-separated list of certifications"
+          },
+          "internal_trainings": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of internal training sessions"
+          },
+          "learning_hours_ytd": {
+            "type": "integer",
+            "min": 0,
+            "description": "Learning hours year-to-date"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "experience": {
+        "description": "Professional experience information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "total_experience_years": {
+            "type": "float",
+            "min": 0,
+            "filterable": true,
+            "description": "Total years of professional experience"
+          },
+          "years_in_current_company": {
+            "type": "float",
+            "min": 0,
+            "description": "Years in current company"
+          },
+          "years_in_current_skillset": {
+            "type": "float",
+            "min": 0,
+            "description": "Years of experience in current skill set"
+          },
+          "known_skills_count": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of known skills"
+          },
+          "previous_companies_resigned": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of previous companies"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "performance": {
+        "description": "Performance and achievement information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "performance_rating": {
+            "type": "integer",
+            "min": 1,
+            "max": 5,
+            "filterable": true,
+            "description": "Performance rating (1-5 scale)"
+          },
+          "kpis_met_pct": {
+            "type": "string",
+            "description": "Percentage of KPIs met"
+          },
+          "promotions_count": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of promotions received"
+          },
+          "awards": {
+            "type": "string",
+            "searchable": true,
+            "description": "Awards and recognitions"
+          },
+          "improvement_areas": {
+            "type": "string",
+            "searchable": true,
+            "description": "Areas for improvement"
+          },
+          "last_review_date": {
+            "type": "date",
+            "description": "Date of last performance review"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "engagement": {
+        "description": "Project allocation and engagement information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "current_project": {
+            "type": "string",
+            "searchable": true,
+            "description": "Current project assignment"
+          },
+          "allocation_percentage": {
+            "type": "string",
+            "description": "Project allocation percentage"
+          },
+          "multiple_project_allocations": {
+            "type": "string",
+            "description": "Multiple project allocations"
+          },
+          "peer_review_score": {
+            "type": "integer",
+            "min": 1,
+            "max": 5,
+            "description": "Peer review score"
+          },
+          "manager_feedback": {
+            "type": "string",
+            "searchable": true,
+            "description": "Manager feedback"
+          },
+          "days_on_bench": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of days on bench"
+          },
+          "engagement_score": {
+            "type": "integer",
+            "min": 1,
+            "max": 10,
+            "filterable": true,
+            "description": "Employee engagement score"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "compensation": {
+        "description": "Compensation and salary information (sensitive data)",
+        "sensitive": true,
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "current_salary": {
+            "type": "integer",
+            "min": 0,
+            "sensitive": true,
+            "description": "Current salary amount"
+          },
+          "bonus": {
+            "type": "integer",
+            "min": 0,
+            "sensitive": true,
+            "description": "Bonus amount"
+          },
+          "total_ctc": {
+            "type": "integer",
+            "min": 0,
+            "sensitive": true,
+            "description": "Total cost to company"
+          },
+          "currency": {
+            "type": "string",
+            "default": "USD",
+            "enum": ["USD", "INR", "EUR", "GBP"],
+            "description": "Currency"
+          },
+          "last_appraisal_date": {
+            "type": "date",
+            "description": "Last appraisal date"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "attendance": {
+        "description": "Attendance and leave information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "monthly_attendance_pct": {
+            "type": "string",
+            "description": "Monthly attendance percentage"
+          },
+          "leave_days_taken": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of leave days taken"
+          },
+          "leave_balance": {
+            "type": "integer",
+            "min": 0,
+            "description": "Remaining leave balance"
+          },
+          "leave_pattern": {
+            "type": "string",
+            "description": "Leave taking pattern"
+          },
+          "leave_transaction_count": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of leave transactions"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "attrition": {
+        "description": "Attrition risk and retention information",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "attrition_risk_score": {
+            "type": "string",
+            "enum": ["Low", "Medium", "High"],
+            "filterable": true,
+            "description": "Attrition risk level"
+          },
+          "internal_transfers": {
+            "type": "integer",
+            "min": 0,
+            "description": "Number of internal transfers"
+          },
+          "exit_intent_flag": {
+            "type": "string",
+            "enum": ["Yes", "No", "Unknown"],
+            "description": "Exit intent indicator"
+          },
+          "retention_plan": {
+            "type": "string",
+            "description": "Retention plan details"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      },
+      "project_history": {
+        "description": "Historical project assignments",
+        "fields": {
+          "employee_id": {
+            "type": "string",
+            "required": true,
+            "indexed": true,
+            "foreign_key": "personal_info.employee_id"
+          },
+          "project_name": {
+            "type": "string",
+            "searchable": true,
+            "description": "Project name"
+          },
+          "project_start_date": {
+            "type": "date",
+            "description": "Project start date"
+          },
+          "project_end_date": {
+            "type": "date",
+            "description": "Project end date"
+          },
+          "project_success": {
+            "type": "string",
+            "enum": ["Successful", "Partially Successful", "Failed"],
+            "description": "Project success status"
+          },
+          "client_feedback": {
+            "type": "string",
+            "searchable": true,
+            "description": "Client feedback"
+          },
+          "contribution_level": {
+            "type": "string",
+            "enum": ["Lead", "Contributor", "Support"],
+            "description": "Employee contribution level"
+          },
+          "created_at": {
+            "type": "datetime",
+            "auto_generate": true
+          },
+          "updated_at": {
+            "type": "datetime",
+            "auto_update": true
+          }
+        }
+      }
+    },
+    "search_index_mapping": {
+      "index_name": "hr-employees-fixed",
+      "fields": {
+        "id": {
+          "source": "generated",
+          "format": "emp_{employee_id}",
+          "type": "key"
+        },
+        "employee_id": {
+          "source": "personal_info.employee_id",
+          "type": "filterable"
+        },
+        "full_name": {
+          "source": "personal_info.full_name",
+          "type": "searchable"
+        },
+        "email": {
+          "source": "personal_info.email",
+          "type": "searchable"
+        },
+        "department": {
+          "source": "employment.department",
+          "type": "searchable_filterable_facetable"
+        },
+        "role": {
+          "source": "employment.role",
+          "type": "searchable_filterable_facetable"
+        },
+        "location": {
+          "source": "personal_info.location",
+          "type": "searchable_filterable_facetable"
+        },
+        "certifications": {
+          "source": "learning.certifications",
+          "type": "searchable"
+        },
+        "current_project": {
+          "source": "engagement.current_project",
+          "type": "searchable"
+        },
+        "total_experience_years": {
+          "source": "experience.total_experience_years",
+          "type": "filterable"
+        },
+        "performance_rating": {
+          "source": "performance.performance_rating",
+          "type": "filterable"
+        },
+        "engagement_score": {
+          "source": "engagement.engagement_score",
+          "type": "filterable"
+        },
+        "combined_text": {
+          "source": "computed",
+          "computation": "Combine full_name, department, role, location, certifications, current_project",
+          "type": "searchable"
+        },
+        "content_vector": {
+          "source": "computed",
+          "computation": "Embedding of combined_text",
+          "type": "vector",
+          "dimensions": 1536
+        }
+      }
+    },
+    "validation_rules": {
+      "required_collections": ["personal_info", "employment"],
+      "data_integrity": {
+        "employee_id_consistency": "All collections must have matching employee_ids",
+        "department_standardization": "Department names should be standardized",
+        "date_formats": "All dates should be in ISO format",
+        "email_uniqueness": "Email addresses should be unique"
+      },
+      "search_requirements": {
+        "min_fields_for_indexing": ["employee_id", "full_name", "department", "role"],
+        "text_length_limits": {
+          "combined_text": 5000,
+          "individual_fields": 1000
+        }
+      }
+    },
+    "metadata": {
+      "created_by": "HR Q&A System",
+      "version": "1.0.0",
+      "last_updated": "2024-06-21",
+      "total_collections": 10,
+      "estimated_employees": 1000
+    }
+  }
+}

@@ -1,0 +1,314 @@
+# settings.yaml
+# HR Q&A System Configuration
+
+# Application Information
+app:
+  name: "HR Q&A System"
+  version: "1.0.0"
+  description: "Intelligent HR Query and Response System"
+  environment: "development"  # development, staging, production
+  debug: true
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Server Configuration
+server:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 1
+  reload: true  # Only for development
+  access_log: true
+  cors:
+    allow_origins: ["*"]
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+
+# Database Configuration
+database:
+  mongodb:
+    database_name: "hr_qna_poc"
+    connection_timeout: 5000  # milliseconds
+    server_selection_timeout: 5000  # milliseconds
+    max_pool_size: 10
+    min_pool_size: 1
+    retry_writes: true
+    collections:
+      personal_info: "personal_info"
+      employment: "employment"
+      learning: "learning"
+      experience: "experience"
+      performance: "performance"
+      engagement: "engagement"
+      compensation: "compensation"
+      attendance: "attendance"
+      attrition: "attrition"
+      project_history: "project_history"
+
+# Search Configuration
+search:
+  azure_search:
+    service_name: "azure-ai-search-1c-assistant"
+    index_name: "hr-employees-fixed"
+    api_version: "2023-11-01"
+    max_results: 50
+    timeout: 30  # seconds
+    vector_search:
+      dimensions: 1536
+      algorithm: "hnsw"
+      metric: "cosine"
+      parameters:
+        m: 4
+        ef_construction: 400
+        ef_search: 500
+    semantic_search:
+      configuration_name: "hr-semantic-config"
+      title_field: "full_name"
+      content_fields: ["combined_text", "certifications", "current_project"]
+      keywords_fields: ["department", "role", "location"]
+    facets:
+      - "department"
+      - "role" 
+      - "location"
+      - "certifications"
+      - "performance_rating"
+      - "engagement_score"
+
+# AI Configuration
+ai:
+  azure_openai:
+    api_version: "2023-05-15"
+    chat_model: "gpt-4o-llm"
+    embedding_model: "text-embedding-ada-002"
+    chat_config:
+      max_tokens: 500
+      temperature: 0.3
+      top_p: 0.9
+      frequency_penalty: 0.0
+      presence_penalty: 0.0
+    embedding_config:
+      batch_size: 16
+      max_retries: 3
+      timeout: 30
+    rate_limits:
+      requests_per_minute: 60
+      tokens_per_minute: 40000
+
+# Query Processing Configuration
+query_processing:
+  intent_detection:
+    confidence_threshold: 0.7
+    default_intent: "general_info"
+    max_query_length: 500
+    min_query_length: 3
+  entity_extraction:
+    max_entities_per_type: 5
+    fuzzy_matching: true
+    similarity_threshold: 0.8
+  response_generation:
+    max_response_length: 1000
+    include_citations: true
+    personalization: false
+  search_parameters:
+    default_top_k: 5
+    max_top_k: 50
+    min_score_threshold: 0.1
+    enable_semantic_search: true
+    enable_vector_search: true
+    hybrid_search_weight: 0.5
+
+# ETL Pipeline Configuration
+etl:
+  processing:
+    batch_size: 100
+    max_workers: 4
+    timeout: 300  # seconds
+    retry_attempts: 3
+    skip_validation: false
+  data_validation:
+    required_fields: ["employee_id", "full_name", "department", "role"]
+    max_field_length: 1000
+    date_format: "ISO"
+    email_validation: true
+  indexing:
+    batch_size: 50
+    parallel_indexing: true
+    generate_embeddings: true
+    update_existing: true
+  file_processing:
+    supported_formats: ["xlsx", "csv"]
+    max_file_size: "100MB"
+    encoding: "utf-8"
+    sheet_mapping:
+      "Personal Info": "personal_info"
+      "Employment": "employment"
+      "Learning": "learning"
+      "Experience": "experience"
+      "Performance": "performance"
+      "Engagement": "engagement"
+      "Compensation": "compensation"
+      "Attendance": "attendance"
+      "Attrition": "attrition"
+      "Project History": "project_history"
+
+# Security Configuration
+security:
+  authentication:
+    enabled: false  # Enable in production
+    method: "api_key"  # api_key, oauth2, jwt
+    session_timeout: 3600  # seconds
+  authorization:
+    role_based: true
+    roles:
+      admin: ["read", "write", "delete", "manage"]
+      hr: ["read", "write"]
+      employee: ["read"]
+      manager: ["read", "team_data"]
+  data_privacy:
+    mask_sensitive_data: true
+    sensitive_fields: ["current_salary", "bonus", "total_ctc"]
+    audit_logging: true
+    gdpr_compliance: true
+
+# Performance Configuration
+performance:
+  caching:
+    enabled: true
+    ttl: 3600  # seconds
+    max_size: 1000  # number of cached items
+    cache_search_results: true
+    cache_embeddings: true
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+    burst_limit: 20
+    per_user_limit: 50
+  monitoring:
+    enable_metrics: true
+    slow_query_threshold: 5.0  # seconds
+    memory_threshold: "1GB"
+    cpu_threshold: 80  # percentage
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    console:
+      enabled: true
+      level: "INFO"
+    file:
+      enabled: true
+      level: "DEBUG"
+      filename: "logs/hr_qna.log"
+      max_size: "10MB"
+      backup_count: 5
+      rotation: "daily"
+  loggers:
+    root:
+      level: "INFO"
+    azure:
+      level: "WARNING"
+    motor:
+      level: "WARNING"
+    openai:
+      level: "INFO"
+
+# Feature Flags
+features:
+  semantic_search: true
+  vector_search: true
+  hybrid_search: true
+  analytics: true
+  suggestions: true
+  batch_processing: true
+  real_time_indexing: false
+  advanced_filtering: true
+  export_functionality: false
+  multi_language: false
+  voice_queries: false
+
+# API Configuration
+api:
+  pagination:
+    default_page_size: 10
+    max_page_size: 100
+  response_format:
+    include_metadata: true
+    include_timing: true
+    include_debug_info: false
+  endpoints:
+    health_check: "/health"
+    api_docs: "/docs"
+    metrics: "/metrics"
+    admin: "/admin"
+  swagger:
+    title: "HR Q&A System API"
+    description: "Intelligent HR Query and Response System"
+    version: "1.0.0"
+    contact:
+      name: "HR System Team"
+      email: "hr-system@company.com"
+
+# Development Configuration
+development:
+  auto_reload: true
+  debug_mode: true
+  mock_data: false
+  test_mode: false
+  sample_data_size: 100
+  profiling: false
+  verbose_logging: true
+
+# Production Configuration (override for production)
+production:
+  debug: false
+  log_level: "WARNING"
+  server:
+    workers: 4
+    reload: false
+  security:
+    authentication:
+      enabled: true
+    authorization:
+      role_based: true
+  performance:
+    caching:
+      ttl: 7200
+    rate_limiting:
+      requests_per_minute: 1000
+  features:
+    real_time_indexing: true
+    export_functionality: true
+
+# Testing Configuration
+testing:
+  test_database: "hr_qna_test"
+  mock_external_services: true
+  test_data_size: 50
+  cleanup_after_tests: true
+  test_timeout: 30  # seconds
+
+# Backup Configuration
+backup:
+  enabled: true
+  frequency: "daily"  # daily, weekly, monthly
+  retention_days: 30
+  backup_types: ["database", "search_index", "logs"]
+  storage_location: "backups/"
+
+# Monitoring and Alerting
+monitoring:
+  health_checks:
+    database: true
+    search_service: true
+    ai_service: true
+    interval: 60  # seconds
+  alerts:
+    email_notifications: false
+    slack_notifications: false
+    error_threshold: 10  # errors per minute
+    response_time_threshold: 10.0  # seconds
+  metrics:
+    collect_system_metrics: true
+    collect_business_metrics: true
+    retention_days: 90
