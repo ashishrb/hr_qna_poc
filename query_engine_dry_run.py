@@ -5,22 +5,23 @@ import os
 
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.query.query_engine import UpdatedHRQueryEngine
+from src.query.intelligent_query_engine import IntelligentQueryEngine  # Correct import
 
 async def test_query_engine_with_real_data():
     """Test query engine with real employee data"""
-    print("🤖 HR Query Engine - Dry Run Testing")
+    print("🤖 Intelligent HR Query Engine - Dry Run Testing")
     print("=" * 60)
     print("Testing with REAL employee data from MongoDB")
+    print("🧠 Using AI-powered query routing and execution")
     print(f"📊 Available data: 25 employees across 10 collections")
     print("=" * 60)
     
     # Initialize query engine
     try:
-        query_engine = UpdatedHRQueryEngine()
-        print("✅ Query engine initialized successfully")
+        query_engine = IntelligentQueryEngine()
+        print("✅ Intelligent Query Engine initialized successfully")
     except Exception as e:
-        print(f"❌ Failed to initialize query engine: {e}")
+        print(f"❌ Failed to initialize intelligent query engine: {e}")
         return
     
     # Test queries based on your actual data structure
@@ -104,16 +105,17 @@ async def test_query_engine_with_real_data():
             # Display results
             print(f"🎯 Intent Detected: {result['intent']}")
             print(f"📊 Entities Found: {result['entities']}")
-            print(f"📈 Search Results: {len(result['search_results'])} employees found")
+            print(f"🔍 Data Source: {result['data_source']}")
+            print(f"📈 Search Results: {len(result['results'])} employees found")
             
             if result['status'] == 'success':
                 print(f"✅ Status: SUCCESS")
                 success_count += 1
                 
                 # Show found employees (top 3)
-                if result['search_results']:
+                if result['results']:
                     print(f"👥 Top Results:")
-                    for j, emp in enumerate(result['search_results'][:3], 1):
+                    for j, emp in enumerate(result['results'][:3], 1):
                         print(f"   {j}. {emp.get('full_name', 'N/A')} - {emp.get('department', 'N/A')} - {emp.get('role', 'N/A')}")
                         if emp.get('certifications'):
                             print(f"      🏆 Certifications: {emp.get('certifications')}")
@@ -124,6 +126,12 @@ async def test_query_engine_with_real_data():
                 
                 # Show AI response
                 print(f"💬 AI Response: {result['response'][:200]}...")
+                
+                # Show confidence and execution time
+                if result.get('confidence'):
+                    print(f"🎯 Confidence: {result['confidence']:.2f}")
+                if result.get('execution_time_ms'):
+                    print(f"⏱️  Execution Time: {result['execution_time_ms']:.1f}ms")
                 
             else:
                 print(f"❌ Status: FAILED")
@@ -156,7 +164,7 @@ async def interactive_testing():
     print("Type your questions or 'quit' to exit")
     print("=" * 40)
     
-    query_engine = UpdatedHRQueryEngine()
+    query_engine = IntelligentQueryEngine()
     
     while True:
         try:
@@ -172,12 +180,12 @@ async def interactive_testing():
             result = await query_engine.process_query(user_query)
             
             print(f"🎯 Intent: {result['intent']}")
-            print(f"📊 Found: {len(result['search_results'])} employees")
+            print(f"📊 Found: {len(result['results'])} employees")
             print(f"💬 Response: {result['response']}")
             
-            if result['search_results']:
+            if result['results']:
                 print(f"\n👥 Employees found:")
-                for emp in result['search_results'][:5]:
+                for emp in result['results'][:5]:
                     print(f"  - {emp.get('full_name', 'N/A')} ({emp.get('department', 'N/A')}) - {emp.get('role', 'N/A')}")
             
         except KeyboardInterrupt:

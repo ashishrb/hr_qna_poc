@@ -1,18 +1,52 @@
 # src/query/intelligent_query_engine.py
 import asyncio
 import json
-from typing import Dict, List, Any, Optional, Union
-from enum import Enum
-from openai import AzureOpenAI
-from dataclasses import dataclass
 import sys
 import os
+from typing import Dict, List, Any, Optional, Union
+from enum import Enum
+from dataclasses import dataclass
 
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.core.config import settings
-from src.database.mongodb_client import mongodb_client
-from src.search.azure_search_client import azure_search_client
+
+# Validate and import external libraries
+try:
+    from openai import AzureOpenAI
+except ImportError as e:
+    print(f"❌ OpenAI library not found: {e}")
+    print("💡 Install with: pip install openai")
+    raise
+
+try:
+    from src.core.config import settings
+except ImportError as e:
+    print(f"❌ Config module not found: {e}")
+    print("💡 Check if src/core/config.py exists")
+    raise
+
+try:
+    from src.database.mongodb_client import mongodb_client
+except ImportError as e:
+    print(f"❌ MongoDB client not found: {e}")
+    print("💡 Check if src/database/mongodb_client.py exists")
+    raise
+
+try:
+    from src.search.azure_search_client import azure_search_client
+except ImportError as e:
+    print(f"❌ Azure Search client not found: {e}")
+    print("💡 Check if src/search/azure_search_client.py exists")
+    raise
+
+# Try to import fallback engine - with graceful handling
+try:
+    from src.query.query_engine import HRQueryEngine
+    FALLBACK_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ Fallback engine not found: {e}")
+    print("💡 Check if src/query/query_engine.py exists")
+    FALLBACK_AVAILABLE = False
 
 class QueryType(Enum):
     ANALYTICS = "analytics"           # Counts, averages, aggregations
@@ -43,46 +77,67 @@ class QueryResult:
     source: DataSource
     execution_time_ms: float
 
-class IntelligentQueryEngine:
-    """State-of-the-art query engine with AI-powered routing and execution"""
+class EnhancedIntelligentQueryEngine:
+    """Enhanced intelligent query engine with P1 fixes and fallback mechanism"""
     
     def __init__(self):
-        self.openai_client = AzureOpenAI(
-            api_key=settings.azure_openai_api_key,
-            api_version="2023-05-15",
-            azure_endpoint=settings.azure_openai_endpoint
-        )
+        # Validate required settings
+        required_settings = ['azure_openai_api_key', 'azure_openai_endpoint']
+        for setting in required_settings:
+            if not hasattr(settings, setting) or not getattr(settings, setting):
+                raise ValueError(f"❌ Missing required setting: {setting}")
         
-        # Query type classifiers
-        self.query_patterns = {
-            QueryType.ANALYTICS: [
-                "how many", "count", "total", "average", "percentage", 
-                "highest", "lowest", "most", "least", "top", "bottom"
+        try:
+            self.openai_client = AzureOpenAI(
+                api_key=settings.azure_openai_api_key,
+                api_version="2023-05-15",
+                azure_endpoint=settings.azure_openai_endpoint
+            )
+        except Exception as e:
+            raise ValueError(f"❌ Failed to initialize OpenAI client: {e}")
+        
+        # Initialize fallback engine if available
+        if FALLBACK_AVAILABLE:
+            try:
+                self.fallback_engine = HRQueryEngine()
+                print("✅ Fallback engine initialized")
+            except Exception as e:
+                print(f"⚠️ Fallback engine failed to initialize: {e}")
+                self.fallback_engine = None
+        else:
+            self.fallback_engine = None
+            print("⚠️ No fallback engine available")
+        
+        # Enhanced query patterns for better detection
+        self.hr_domain_patterns = {
+            "leave_queries": [
+                "maximum leave", "max leave", "highest leave", "most leave",
+                "leave days taken", "annual leave", "vacation days",
+                "20 days", "30 days", "leave balance", "leave pattern"
             ],
-            QueryType.TEXT_SEARCH: [
-                "find employee named", "who is", "search for", "employee profile"
+            "performance_queries": [
+                "high performing", "top performers", "performance rating",
+                "best employees", "excellent", "outstanding"
             ],
-            QueryType.COMPLEX_FILTER: [
-                "with", "and", "having", "where", "criteria", "conditions"
+            "attendance_queries": [
+                "attendance", "absent", "present", "working days",
+                "monthly attendance", "attendance percentage"
             ],
-            QueryType.COMPARISON: [
-                "compare", "vs", "versus", "difference between", "better than"
-            ],
-            QueryType.TREND_ANALYSIS: [
-                "trend", "over time", "monthly", "yearly", "growth", "change"
+            "count_queries": [
+                "how many", "count", "total", "number of", "quantity"
             ]
         }
     
     async def process_query(self, query: str) -> Dict[str, Any]:
-        """Main query processing with intelligent routing"""
+        """Main query processing with enhanced error handling and fallback"""
         start_time = asyncio.get_event_loop().time()
         
         try:
-            # Step 1: AI-powered intent and entity extraction
-            intent = await self._extract_intent_and_entities(query)
+            # Step 1: Enhanced AI-powered intent and entity extraction
+            intent = await self._extract_intent_and_entities_enhanced(query)
             
-            # Step 2: Route to optimal data source
-            result = await self._execute_query(query, intent)
+            # Step 2: Route to optimal data source with error handling
+            result = await self._execute_query_with_fallback(query, intent)
             
             # Step 3: Generate intelligent response
             response = await self._generate_intelligent_response(query, intent, result)
@@ -103,20 +158,33 @@ class IntelligentQueryEngine:
             }
             
         except Exception as e:
-            return {
-                "query": query,
-                "status": "error",
-                "error": str(e),
-                "response": "I encountered an error processing your query. Please try rephrasing or contact support."
-            }
+            print(f"❌ IntelligentQueryEngine failed: {e}")
+            # Fallback to simple engine if available
+            if self.fallback_engine is not None:
+                return await self._fallback_to_simple_engine(query, start_time)
+            else:
+                # Return error response if no fallback available
+                return {
+                    "query": query,
+                    "intent": "unknown",
+                    "entities": {},
+                    "data_source": "none",
+                    "results": [],
+                    "count": 0,
+                    "response": f"I apologize, but I encountered an error processing your query: {str(e)}",
+                    "execution_time_ms": 0,
+                    "confidence": 0.0,
+                    "status": "error"
+                }
     
-    async def _extract_intent_and_entities(self, query: str) -> QueryIntent:
-        """AI-powered intent detection and entity extraction using GPT-4"""
+    async def _extract_intent_and_entities_enhanced(self, query: str) -> QueryIntent:
+        """Enhanced AI-powered intent detection with HR domain optimization"""
         
-        system_prompt = """You are an expert HR data analyst. Extract intent and entities from HR queries.
+        # Enhanced system prompt optimized for HR domain
+        system_prompt = """You are an expert HR data analyst specializing in employee queries. Extract intent and entities from HR queries with high precision.
 
         Query Types:
-        - analytics: Counts, averages, statistics, aggregations
+        - analytics: Counts, statistics, aggregations (how many, total, average, maximum, minimum)
         - text_search: Finding specific people by name or description  
         - complex_filter: Multi-criteria filtering and search
         - comparison: Comparing groups or departments
@@ -124,15 +192,23 @@ class IntelligentQueryEngine:
         - recommendation: AI suggestions and insights
 
         Data Sources:
-        - mongodb: For analytics, counts, aggregations, complex filtering
+        - mongodb: For analytics, counts, aggregations, complex filtering, leave analysis
         - azure_search: For text search, semantic search, name lookup
         - hybrid: For queries needing both sources
 
-        Extract ALL relevant entities including:
+        HR Domain Entities to Extract:
         - Basic: department, role, location, skills, employee_name
-        - Advanced: work_mode, performance_level, leave_pattern, experience_range
-        - Numeric: salary_range, experience_years, age_range
-        - Temporal: date_range, tenure_period
+        - Leave & Attendance: leave_pattern, attendance_level, leave_threshold
+        - Performance: performance_level, rating_range
+        - Experience: experience_range, tenure_period
+        - Numeric: leave_days, experience_years, age_range, salary_range
+        - Temporal: date_range, time_period
+
+        Special Leave Patterns:
+        - "maximum leave" or "max leave" → leave_pattern: "maximum", aggregation_type: "count"
+        - "20 days" or "30 days" → leave_threshold: number
+        - "annual leave" → leave_type: "annual"
+        - "high leave" → leave_pattern: "high"
 
         Return JSON format:
         {
@@ -143,12 +219,11 @@ class IntelligentQueryEngine:
                 "department": "string or null",
                 "role": "string or null", 
                 "skills": ["array of strings"],
-                "work_mode": "Remote|Hybrid|Onsite or null",
+                "leave_pattern": "maximum|minimum|high|low|average or null",
+                "leave_threshold": number or null,
                 "performance_level": "high|medium|low or null",
-                "leave_pattern": "maximum|minimum|average or null",
+                "attendance_level": "high|medium|low or null",
                 "experience_range": "junior|mid|senior or null",
-                "salary_range": {"min": number, "max": number} or null,
-                "comparison_type": "department|role|performance or null",
                 "aggregation_type": "count|average|sum|max|min or null",
                 "sort_by": "string or null",
                 "limit": number or null
@@ -158,7 +233,11 @@ class IntelligentQueryEngine:
         user_prompt = f"""
         Query: "{query}"
         
-        Analyze this HR query and extract the intent and entities.
+        Analyze this HR query and extract the intent and entities with focus on:
+        1. Leave and attendance patterns
+        2. Performance metrics
+        3. Employee demographics
+        4. Skills and certifications
         """
         
         try:
@@ -182,21 +261,46 @@ class IntelligentQueryEngine:
             )
             
         except Exception as e:
+            print(f"❌ Enhanced AI extraction failed: {e}")
             # Fallback to pattern-based detection
             return self._fallback_intent_detection(query)
     
     def _fallback_intent_detection(self, query: str) -> QueryIntent:
-        """Fallback pattern-based intent detection"""
+        """Enhanced pattern-based intent detection as fallback"""
         query_lower = query.lower()
         
-        # Simple pattern matching as fallback
-        if any(pattern in query_lower for pattern in self.query_patterns[QueryType.ANALYTICS]):
+        # Check for leave-related queries
+        if any(pattern in query_lower for pattern in self.hr_domain_patterns["leave_queries"]):
+            entities = {}
+            
+            # Extract leave patterns
+            if any(word in query_lower for word in ["maximum", "max", "highest", "most"]):
+                entities["leave_pattern"] = "maximum"
+                entities["aggregation_type"] = "count"
+            
+            # Extract numeric thresholds
+            if "20" in query_lower or "twenty" in query_lower:
+                entities["leave_threshold"] = 20
+            if "30" in query_lower or "thirty" in query_lower:
+                entities["leave_threshold"] = 30
+            
+            return QueryIntent(
+                query_type=QueryType.ANALYTICS,
+                data_source=DataSource.MONGODB,
+                confidence=0.8,
+                extracted_entities=entities
+            )
+        
+        # Check for count queries
+        elif any(pattern in query_lower for pattern in self.hr_domain_patterns["count_queries"]):
             return QueryIntent(
                 query_type=QueryType.ANALYTICS,
                 data_source=DataSource.MONGODB,
                 confidence=0.7,
-                extracted_entities={}
+                extracted_entities={"aggregation_type": "count"}
             )
+        
+        # Default to text search
         else:
             return QueryIntent(
                 query_type=QueryType.TEXT_SEARCH,
@@ -205,32 +309,42 @@ class IntelligentQueryEngine:
                 extracted_entities={}
             )
     
-    async def _execute_query(self, query: str, intent: QueryIntent) -> QueryResult:
-        """Execute query using the optimal data source"""
-        
-        if intent.data_source == DataSource.MONGODB:
-            return await self._execute_mongodb_query(query, intent)
-        elif intent.data_source == DataSource.AZURE_SEARCH:
-            return await self._execute_azure_search_query(query, intent)
-        else:  # HYBRID
-            return await self._execute_hybrid_query(query, intent)
+    async def _execute_query_with_fallback(self, query: str, intent: QueryIntent) -> QueryResult:
+        """Execute query with error handling and fallback"""
+        try:
+            if intent.data_source == DataSource.MONGODB:
+                return await self._execute_mongodb_query_enhanced(query, intent)
+            elif intent.data_source == DataSource.AZURE_SEARCH:
+                return await self._execute_azure_search_query(query, intent)
+            else:  # HYBRID
+                return await self._execute_hybrid_query(query, intent)
+        except Exception as e:
+            print(f"❌ Query execution failed: {e}")
+            # Return empty result instead of crashing
+            return QueryResult(
+                data=[],
+                count=0,
+                metadata={"error": str(e)},
+                source=intent.data_source,
+                execution_time_ms=0
+            )
     
-    async def _execute_mongodb_query(self, query: str, intent: QueryIntent) -> QueryResult:
-        """Execute analytics queries using MongoDB aggregation"""
+    async def _execute_mongodb_query_enhanced(self, query: str, intent: QueryIntent) -> QueryResult:
+        """Enhanced MongoDB execution with proper data type handling"""
         start_time = asyncio.get_event_loop().time()
         
         try:
             # Connect to MongoDB
             await mongodb_client.connect()
             
-            # Build aggregation pipeline based on intent
-            pipeline = self._build_aggregation_pipeline(intent)
+            # Build enhanced aggregation pipeline
+            pipeline = self._build_aggregation_pipeline_enhanced(intent)
             
             # Execute the pipeline
             if intent.query_type == QueryType.ANALYTICS:
-                results = await self._execute_analytics_pipeline(pipeline, intent)
+                results = await self._execute_analytics_pipeline_enhanced(pipeline, intent)
             else:
-                results = await self._execute_filter_pipeline(pipeline, intent)
+                results = await self._execute_filter_pipeline_enhanced(pipeline, intent)
             
             execution_time = (asyncio.get_event_loop().time() - start_time) * 1000
             
@@ -243,11 +357,11 @@ class IntelligentQueryEngine:
             )
             
         except Exception as e:
-            print(f"MongoDB query failed: {e}")
-            return QueryResult(data=[], count=0, metadata={}, source=DataSource.MONGODB, execution_time_ms=0)
+            print(f"❌ Enhanced MongoDB query failed: {e}")
+            return QueryResult(data=[], count=0, metadata={"error": str(e)}, source=DataSource.MONGODB, execution_time_ms=0)
     
-    def _build_aggregation_pipeline(self, intent: QueryIntent) -> List[Dict[str, Any]]:
-        """Build MongoDB aggregation pipeline based on extracted entities"""
+    def _build_aggregation_pipeline_enhanced(self, intent: QueryIntent) -> List[Dict[str, Any]]:
+        """Enhanced MongoDB aggregation pipeline with proper data type handling"""
         pipeline = []
         entities = intent.extracted_entities
         
@@ -284,14 +398,6 @@ class IntelligentQueryEngine:
                     "foreignField": "employee_id",
                     "as": "engagement"
                 }
-            },
-            {
-                "$lookup": {
-                    "from": "learning",
-                    "localField": "employee_id",
-                    "foreignField": "employee_id", 
-                    "as": "learning"
-                }
             }
         ])
         
@@ -300,9 +406,30 @@ class IntelligentQueryEngine:
             {"$unwind": {"path": "$employment", "preserveNullAndEmptyArrays": True}},
             {"$unwind": {"path": "$performance", "preserveNullAndEmptyArrays": True}},
             {"$unwind": {"path": "$attendance", "preserveNullAndEmptyArrays": True}},
-            {"$unwind": {"path": "$engagement", "preserveNullAndEmptyArrays": True}},
-            {"$unwind": {"path": "$learning", "preserveNullAndEmptyArrays": True}}
+            {"$unwind": {"path": "$engagement", "preserveNullAndEmptyArrays": True}}
         ])
+        
+        # CRITICAL FIX: Add field conversion for proper data type handling
+        pipeline.append({
+            "$addFields": {
+                "attendance.leave_days_taken_num": {
+                    "$toInt": {
+                        "$ifNull": [
+                            {"$toInt": "$attendance.leave_days_taken"}, 
+                            0
+                        ]
+                    }
+                },
+                "performance.performance_rating_num": {
+                    "$toInt": {
+                        "$ifNull": [
+                            {"$toInt": "$performance.performance_rating"}, 
+                            0
+                        ]
+                    }
+                }
+            }
+        })
         
         # Build match conditions based on entities
         match_conditions = {}
@@ -313,27 +440,29 @@ class IntelligentQueryEngine:
         if entities.get("role"):
             match_conditions["employment.role"] = entities["role"]
         
-        if entities.get("work_mode"):
-            match_conditions["employment.work_mode"] = entities["work_mode"]
-        
         if entities.get("performance_level"):
             if entities["performance_level"] == "high":
-                match_conditions["performance.performance_rating"] = {"$gte": 4}
+                match_conditions["performance.performance_rating_num"] = {"$gte": 4}
             elif entities["performance_level"] == "low":
-                match_conditions["performance.performance_rating"] = {"$lte": 2}
+                match_conditions["performance.performance_rating_num"] = {"$lte": 2}
         
+        # ENHANCED: Handle leave pattern queries with proper thresholds
         if entities.get("leave_pattern"):
             if entities["leave_pattern"] == "maximum":
-                match_conditions["attendance.leave_days_taken"] = {"$gte": 20}
+                # Find employees with very high leave (top 20% threshold)
+                threshold = entities.get("leave_threshold", 20)  # Default to 20 days
+                match_conditions["attendance.leave_days_taken_num"] = {"$gte": threshold}
             elif entities["leave_pattern"] == "minimum":
-                match_conditions["attendance.leave_days_taken"] = {"$lte": 5}
+                match_conditions["attendance.leave_days_taken_num"] = {"$lte": 5}
+            elif entities["leave_pattern"] == "high":
+                match_conditions["attendance.leave_days_taken_num"] = {"$gte": 15}
         
-        if entities.get("experience_range"):
-            if entities["experience_range"] == "senior":
-                match_conditions["experience.total_experience_years"] = {"$gte": 8}
-            elif entities["experience_range"] == "junior":
-                match_conditions["experience.total_experience_years"] = {"$lte": 3}
+        # Handle specific leave thresholds
+        if entities.get("leave_threshold"):
+            threshold = entities["leave_threshold"]
+            match_conditions["attendance.leave_days_taken_num"] = {"$gte": threshold}
         
+        # Add match stage if we have conditions
         if match_conditions:
             pipeline.append({"$match": match_conditions})
         
@@ -345,11 +474,18 @@ class IntelligentQueryEngine:
                 pipeline.append({
                     "$group": {
                         "_id": None,
-                        "average": {"$avg": "$performance.performance_rating"}
+                        "average": {"$avg": "$performance.performance_rating_num"}
+                    }
+                })
+            elif entities.get("aggregation_type") == "max":
+                pipeline.append({
+                    "$group": {
+                        "_id": None,
+                        "maximum": {"$max": "$attendance.leave_days_taken_num"}
                     }
                 })
             else:
-                # Default count
+                # Default count for analytics queries
                 pipeline.append({"$count": "total"})
         else:
             # For complex filters, return actual documents
@@ -359,24 +495,19 @@ class IntelligentQueryEngine:
                     "full_name": 1,
                     "department": "$employment.department",
                     "role": "$employment.role",
-                    "work_mode": "$employment.work_mode",
-                    "performance_rating": "$performance.performance_rating",
-                    "leave_days_taken": "$attendance.leave_days_taken",
+                    "performance_rating": "$performance.performance_rating_num",
+                    "leave_days_taken": "$attendance.leave_days_taken_num",
                     "engagement_score": "$engagement.engagement_score"
                 }
             })
-            
-            if entities.get("sort_by"):
-                sort_field = entities["sort_by"]
-                pipeline.append({"$sort": {sort_field: -1}})
             
             if entities.get("limit"):
                 pipeline.append({"$limit": entities["limit"]})
         
         return pipeline
     
-    async def _execute_analytics_pipeline(self, pipeline: List[Dict[str, Any]], intent: QueryIntent) -> Dict[str, Any]:
-        """Execute analytics aggregation pipeline"""
+    async def _execute_analytics_pipeline_enhanced(self, pipeline: List[Dict[str, Any]], intent: QueryIntent) -> Dict[str, Any]:
+        """Enhanced analytics pipeline execution with better error handling"""
         try:
             collection = await mongodb_client.get_collection("personal_info")
             cursor = collection.aggregate(pipeline)
@@ -386,7 +517,7 @@ class IntelligentQueryEngine:
                 return {
                     "data": [],
                     "count": results[0]["total"],
-                    "metadata": {"aggregation_type": "count"}
+                    "metadata": {"aggregation_type": "count", "pipeline_success": True}
                 }
             elif results and "average" in results[0]:
                 return {
@@ -394,15 +525,21 @@ class IntelligentQueryEngine:
                     "count": 1,
                     "metadata": {"average": results[0]["average"], "aggregation_type": "average"}
                 }
+            elif results and "maximum" in results[0]:
+                return {
+                    "data": [],
+                    "count": 1,
+                    "metadata": {"maximum": results[0]["maximum"], "aggregation_type": "maximum"}
+                }
             else:
-                return {"data": [], "count": 0, "metadata": {}}
+                return {"data": [], "count": 0, "metadata": {"pipeline_success": False}}
                 
         except Exception as e:
-            print(f"Analytics pipeline failed: {e}")
-            return {"data": [], "count": 0, "metadata": {}}
+            print(f"❌ Analytics pipeline failed: {e}")
+            return {"data": [], "count": 0, "metadata": {"error": str(e)}}
     
-    async def _execute_filter_pipeline(self, pipeline: List[Dict[str, Any]], intent: QueryIntent) -> Dict[str, Any]:
-        """Execute filtering pipeline that returns documents"""
+    async def _execute_filter_pipeline_enhanced(self, pipeline: List[Dict[str, Any]], intent: QueryIntent) -> Dict[str, Any]:
+        """Enhanced filtering pipeline that returns documents"""
         try:
             collection = await mongodb_client.get_collection("personal_info")
             cursor = collection.aggregate(pipeline)
@@ -415,8 +552,8 @@ class IntelligentQueryEngine:
             }
             
         except Exception as e:
-            print(f"Filter pipeline failed: {e}")
-            return {"data": [], "count": 0, "metadata": {}}
+            print(f"❌ Filter pipeline failed: {e}")
+            return {"data": [], "count": 0, "metadata": {"error": str(e)}}
     
     async def _execute_azure_search_query(self, query: str, intent: QueryIntent) -> QueryResult:
         """Execute text search queries using Azure Search"""
@@ -437,14 +574,14 @@ class IntelligentQueryEngine:
             )
             
         except Exception as e:
-            print(f"Azure Search query failed: {e}")
-            return QueryResult(data=[], count=0, metadata={}, source=DataSource.AZURE_SEARCH, execution_time_ms=0)
+            print(f"❌ Azure Search query failed: {e}")
+            return QueryResult(data=[], count=0, metadata={"error": str(e)}, source=DataSource.AZURE_SEARCH, execution_time_ms=0)
     
     async def _execute_hybrid_query(self, query: str, intent: QueryIntent) -> QueryResult:
         """Execute hybrid queries using both MongoDB and Azure Search"""
         # For now, route to MongoDB for analytics, Azure Search for text
         if intent.query_type == QueryType.ANALYTICS:
-            return await self._execute_mongodb_query(query, intent)
+            return await self._execute_mongodb_query_enhanced(query, intent)
         else:
             return await self._execute_azure_search_query(query, intent)
     
@@ -502,33 +639,61 @@ class IntelligentQueryEngine:
                 return f"Found {result.count} employees matching your criteria."
             else:
                 return f"Here are {result.count} employees that match your search."
+    
+    async def _fallback_to_simple_engine(self, query: str, start_time: float) -> Dict[str, Any]:
+        """Fallback to HRQueryEngine when IntelligentQueryEngine fails"""
+        if self.fallback_engine is None:
+            return {
+                "query": query,
+                "intent": "unknown", 
+                "entities": {},
+                "data_source": "none",
+                "results": [],
+                "count": 0,
+                "response": "I apologize, but I cannot process your query due to system limitations.",
+                "execution_time_ms": 0,
+                "confidence": 0.0,
+                "status": "error"
+            }
+        
+        try:
+            print("🔄 Falling back to HRQueryEngine...")
+            result = await self.fallback_engine.process_query(query)
+            
+            # Convert HRQueryEngine response to IntelligentQueryEngine format
+            execution_time = (asyncio.get_event_loop().time() - start_time) * 1000
+            
+            return {
+                "query": result["query"],
+                "intent": result["intent"],
+                "entities": result["entities"],
+                "data_source": "fallback_engine",
+                "results": result.get("search_results", []),
+                "count": result.get("count", len(result.get("search_results", []))),
+                "response": result["response"],
+                "execution_time_ms": execution_time,
+                "confidence": 0.7,  # Medium confidence for fallback
+                "status": "success_fallback"
+            }
+            
+        except Exception as e:
+            return {
+                "query": query,
+                "intent": "unknown",
+                "entities": {},
+                "data_source": "none",
+                "results": [],
+                "count": 0,
+                "response": f"I apologize, but I encountered an error processing your query: {str(e)}",
+                "execution_time_ms": 0,
+                "confidence": 0.0,
+                "status": "error"
+            }
 
-# Example usage and testing
-async def main():
-    """Test the intelligent query engine"""
-    engine = IntelligentQueryEngine()
-    
-    test_queries = [
-        "How many employees took maximum leave?",
-        "Find employees working in hybrid mode",
-        "Show me high-performing employees in Sales",
-        "Count employees with GCP certification", 
-        "Who works on multiple projects?",
-        "Average performance rating by department",
-        "Find employees named John",
-        "Top 5 employees with most experience"
-    ]
-    
-    print("🧠 Testing Intelligent Query Engine")
-    print("=" * 60)
-    
-    for query in test_queries:
-        print(f"\n🔍 Query: '{query}'")
-        result = await engine.process_query(query)
-        print(f"💡 Intent: {result['intent']} | Source: {result['data_source']}")
-        print(f"📊 Count: {result['count']} | Time: {result['execution_time_ms']:.1f}ms")
-        print(f"💬 Response: {result['response']}")
-        print("-" * 60)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# Global instance with error handling
+try:
+    intelligent_query_engine = EnhancedIntelligentQueryEngine()
+    print("✅ Intelligent Query Engine initialized successfully")
+except Exception as e:
+    print(f"❌ Failed to initialize Intelligent Query Engine: {e}")
+    intelligent_query_engine = None
