@@ -14,7 +14,7 @@ async def explore_data():
     try:
         search_client = SearchClient(
             endpoint=settings.azure_search_endpoint,
-            index_name="hr-employees-index",
+            index_name="hr-employees-fixed",
             credential=AzureKeyCredential(settings.azure_search_api_key)
         )
         
@@ -28,7 +28,7 @@ async def explore_data():
         
         # Sample employees
         print("\n👥 Sample employees:")
-        sample_results = search_client.search("*", top=5, select="full_name,department,position,skills")
+        sample_results = search_client.search("*", top=5, select="full_name,department,role,certifications")
         for i, result in enumerate(sample_results, 1):
             print(f"{i}. {result.get('full_name', 'N/A')} - {result.get('department', 'N/A')} - {result.get('position', 'N/A')}")
             print(f"   Skills: {result.get('skills', 'N/A')}")
@@ -41,10 +41,10 @@ async def explore_data():
                 print(f"   {facet['value']}: {facet['count']} employees")
         
         # Position distribution
-        print("\n💼 Positions:")
-        pos_results = search_client.search("*", facets=["position"], top=0)
+        print("\n💼 Roles:")
+        pos_results = search_client.search("*", facets=["role"], top=0)
         if pos_results.get_facets():
-            for facet in pos_results.get_facets()["position"][:10]:
+            for facet in pos_results.get_facets()["role"][:10]:  # ← FIXED
                 print(f"   {facet['value']}: {facet['count']} employees")
         
         # Test searches
