@@ -16,7 +16,7 @@ from src.core.models import (
 from src.core.exceptions import (
     HRQAException, ValidationException, QueryException, SearchException
 )
-from src.query.updated_query_engine import UpdatedHRQueryEngine
+from src.query.hr_query_engine import RobustHRQueryEngine
 from src.query.intent_detector import intent_detector
 from src.query.response_generator import response_generator
 from src.database.collections import employee_collections
@@ -31,7 +31,7 @@ analytics_router = APIRouter(prefix="/analytics", tags=["Analytics"])
 admin_router = APIRouter(prefix="/admin", tags=["Administration"])
 
 # Initialize query engine
-query_engine = UpdatedHRQueryEngine()
+query_engine = RobustHRQueryEngine()
 
 # =============================================================================
 # MAIN ENDPOINTS

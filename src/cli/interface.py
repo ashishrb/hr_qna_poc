@@ -10,13 +10,13 @@ from datetime import datetime
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 from src.processing.etl_pipeline import etl_pipeline
-from src.query.updated_query_engine import UpdatedHRQueryEngine
+from src.query.hr_query_engine import RobustHRQueryEngine
 from src.database.collections import employee_collections
 from src.search.azure_search_client import azure_search_client
 from src.core.config import settings
 
 # Initialize components
-query_engine = UpdatedHRQueryEngine()
+query_engine = RobustHRQueryEngine()
 
 @click.group()
 @click.version_option(version="1.0.0")

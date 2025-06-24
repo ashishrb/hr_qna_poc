@@ -34,7 +34,7 @@ import os
 
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.query.updated_query_engine import UpdatedHRQueryEngine
+from src.query.hr_query_engine import RobustHRQueryEngine
 from src.search.azure_search_client import azure_search_client
 from src.database.mongodb_client import mongodb_client
 
@@ -102,7 +102,7 @@ class PerformanceTestSuite:
         
         try:
             # Initialize query engine
-            self.query_engine = UpdatedHRQueryEngine()
+            self.query_engine = RobustHRQueryEngine()
             
             # Test database connection
             await mongodb_client.connect()

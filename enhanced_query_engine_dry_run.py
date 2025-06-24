@@ -5,7 +5,7 @@ import os
 
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.query.intelligent_query_engine import EnhancedIntelligentQueryEngine
+from src.query.hr_query_engine import RobustHRQueryEngine
 
 async def test_enhanced_query_engine():
     """Test enhanced query engine with P1 fixes"""
@@ -20,7 +20,7 @@ async def test_enhanced_query_engine():
     
     # Initialize enhanced query engine
     try:
-        query_engine = EnhancedIntelligentQueryEngine()
+        query_engine = RobustHRQueryEngine()
         print("✅ Enhanced Intelligent Query Engine initialized successfully")
     except Exception as e:
         print(f"❌ Failed to initialize enhanced query engine: {e}")
@@ -100,9 +100,9 @@ async def test_enhanced_query_engine():
             # Display enhanced results
             print(f"🎯 Intent Detected: {result['intent']}")
             print(f"📊 Entities Found: {result['entities']}")
-            print(f"🔍 Data Source: {result['data_source']}")
+            print(f"🔍 Status: {result['status']}")
             print(f"📈 Results Count: {result['count']}")
-            print(f"🎯 Confidence: {result.get('confidence', 0):.2f}")
+            print(f"🎯 Complexity: {result.get('query_complexity', 'Unknown')}")
             print(f"⏱️  Execution Time: {result.get('execution_time_ms', 0):.1f}ms")
             
             if result['status'] == 'success':
@@ -126,10 +126,13 @@ async def test_enhanced_query_engine():
                     if result['results'] and len(result['results']) > 0:
                         print(f"👥 Sample Results:")
                         for j, emp in enumerate(result['results'][:3], 1):
-                            name = emp.get('full_name', 'N/A')
-                            dept = emp.get('department', 'N/A')
-                            role = emp.get('role', 'N/A')
-                            print(f"   {j}. {name} - {dept} - {role}")
+                            if isinstance(emp, dict):  # Safety check
+                                name = emp.get('full_name', 'N/A')
+                                dept = emp.get('department', 'N/A')
+                                role = emp.get('role', 'N/A')
+                                print(f"   {j}. {name} - {dept} - {role}")
+                            else:
+                                print(f"   {j}. {emp}")
             
             # Show AI response (truncated)
             response_preview = result['response'][:150] + "..." if len(result['response']) > 150 else result['response']
