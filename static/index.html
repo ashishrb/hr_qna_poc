@@ -23,27 +23,27 @@
         </div>
         
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
+            <a href="#dashboard" class="nav-item active" data-section="dashboard">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#query" class="nav-item" data-section="query" onclick="showSection('query')">
+            <a href="#query" class="nav-item" data-section="query">
                 <i class="fas fa-search"></i>
                 <span>AI Query</span>
             </a>
-            <a href="#analytics" class="nav-item" data-section="analytics" onclick="showSection('analytics')">
+            <a href="#analytics" class="nav-item" data-section="analytics">
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
-            <a href="#advanced-analytics" class="nav-item" data-section="advanced-analytics" onclick="showSection('advanced-analytics')">
+            <a href="#advanced-analytics" class="nav-item" data-section="advanced-analytics">
                 <i class="fas fa-brain"></i>
                 <span>AI Analytics</span>
             </a>
-            <a href="#employees" class="nav-item" data-section="employees" onclick="showSection('employees')">
+            <a href="#employees" class="nav-item" data-section="employees">
                 <i class="fas fa-users"></i>
                 <span>Employees</span>
             </a>
-            <a href="#reports" class="nav-item" data-section="reports" onclick="showSection('reports')">
+            <a href="#reports" class="nav-item" data-section="reports">
                 <i class="fas fa-file-alt"></i>
                 <span>Reports</span>
             </a>
@@ -190,15 +190,15 @@
             <div class="quick-actions">
                 <h3>Quick Actions</h3>
                 <div class="actions-grid">
-                    <button class="action-card" onclick="showSection('query')">
+                    <button class="action-card" data-section="query">
                         <i class="fas fa-search"></i>
                         <span>Ask AI Question</span>
                     </button>
-                    <button class="action-card" onclick="showSection('analytics')">
+                    <button class="action-card" data-section="analytics">
                         <i class="fas fa-chart-bar"></i>
                         <span>View Analytics</span>
                     </button>
-                    <button class="action-card" onclick="showSection('employees')">
+                    <button class="action-card" data-section="employees">
                         <i class="fas fa-users"></i>
                         <span>Browse Employees</span>
                     </button>
@@ -222,7 +222,7 @@
                     <div class="query-input-wrapper">
                         <textarea 
                             id="queryInput" 
-                            placeholder="Ask anything about your employees... (e.g., 'How many employees work in IT department?')"
+                            placeholder="Ask anything about your employees... (e.g., 'Show me top performers', 'What is the average salary?', 'How many employees in Marketing?')"
                             rows="3"
                         ></textarea>
                         <button class="query-submit-btn" onclick="submitQuery()">
@@ -234,11 +234,16 @@
                     <div class="query-examples">
                         <h4>Try these examples:</h4>
                         <div class="example-tags">
-                            <span class="example-tag" onclick="setQuery('How many employees work in IT department?')">Count IT employees</span>
+                            <span class="example-tag" onclick="setQuery('How many employees work in Marketing department?')">Count Marketing employees</span>
                             <span class="example-tag" onclick="setQuery('Show me top 5 performers')">Top performers</span>
-                            <span class="example-tag" onclick="setQuery('Compare average salary between departments')">Salary comparison</span>
-                            <span class="example-tag" onclick="setQuery('Who are employees at risk of attrition?')">Attrition risk</span>
+                            <span class="example-tag" onclick="setQuery('What is the average salary across all departments?')">Average salary</span>
+                            <span class="example-tag" onclick="setQuery('Which employees have high attrition risk?')">Attrition risk</span>
                             <span class="example-tag" onclick="setQuery('What is the average performance rating?')">Performance analytics</span>
+                            <span class="example-tag" onclick="setQuery('Show me employees with highest KPIs')">High KPIs</span>
+                            <span class="example-tag" onclick="setQuery('Compare performance between IT and Marketing')">Department comparison</span>
+                            <span class="example-tag" onclick="setQuery('Who are the newest employees?')">Recent hires</span>
+                            <span class="example-tag" onclick="setQuery('What is the gender distribution?')">Gender analytics</span>
+                            <span class="example-tag" onclick="setQuery('Show me employees earning above $100,000')">High earners</span>
                         </div>
                     </div>
                 </div>
@@ -429,8 +434,21 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner">
-            <div class="spinner"></div>
-            <p>Processing your request...</p>
+            <div class="spinner-container">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-content">
+                <h3 id="loadingTitle">Processing your request...</h3>
+                <p id="loadingMessage">Please wait while we analyze your data</p>
+                <div class="loading-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <span class="progress-text" id="progressText">0%</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -814,65 +832,139 @@
         // Override the submitQuery function
         window.submitQuery = window.submitQueryDirect;
         
-        // Direct function to load employees
+        // Direct function to load employees with caching
         window.loadEmployeesDirect = async function() {
             console.log('Direct employees loading...');
+            
+            // Check cache first
+            const cacheKey = 'employees_data';
+            const cachedData = sessionStorage.getItem(cacheKey);
+            const cacheTime = sessionStorage.getItem(cacheKey + '_time');
+            const now = Date.now();
+            
+            // Use cached data if less than 5 minutes old
+            if (cachedData && cacheTime && (now - parseInt(cacheTime)) < 300000) {
+                console.log('Using cached employees data');
+                const data = JSON.parse(cachedData);
+                displayEmployees(data);
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/employees?limit=20');
                 const data = await response.json();
                 console.log('Employees data:', data);
                 
-                const employeesGrid = document.getElementById('employeesGrid');
-                if (employeesGrid) {
-                    employeesGrid.innerHTML = '';
-                    
-                    data.employees.forEach(employee => {
-                        const employeeCard = document.createElement('div');
-                        employeeCard.className = 'employee-card';
-                        employeeCard.innerHTML = `
-                            <div class="employee-header">
-                                <h3>${employee.full_name || 'N/A'}</h3>
-                                <span class="employee-id">${employee.employee_id}</span>
-                            </div>
-                            <div class="employee-details">
-                                <div class="detail-row">
-                                    <span class="label">Department:</span>
-                                    <span class="value">${employee.department || 'N/A'}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label">Role:</span>
-                                    <span class="value">${employee.role || 'N/A'}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label">Performance:</span>
-                                    <span class="value">${employee.performance_rating || 'N/A'}/5</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label">KPIs:</span>
-                                    <span class="value">${employee.kpis_met_pct || 'N/A'}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span class="label">Salary:</span>
-                                    <span class="value">$${employee.current_salary ? employee.current_salary.toLocaleString() : 'N/A'}</span>
-                                </div>
-                            </div>
-                            <div class="employee-actions">
-                                <button class="btn btn-primary" onclick="viewEmployeeDirect('${employee.employee_id}')">
-                                    <i class="fas fa-eye"></i> View Details
-                                </button>
-                            </div>
-                        `;
-                        employeesGrid.appendChild(employeeCard);
-                    });
-                    
-                    console.log(`Loaded ${data.employees.length} employees`);
-                }
+                // Cache the data
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                sessionStorage.setItem(cacheKey + '_time', now.toString());
+                
+                displayEmployees(data);
                 
             } catch (error) {
                 console.error('Error loading employees:', error);
-                alert('Error loading employees: ' + error.message);
+                showErrorMessage('Unable to load employee directory', 
+                    'There was a problem connecting to the employee database. Please try again or contact support if the issue persists.');
             }
         };
+        
+        // Optimized function to display employees
+        function displayEmployees(data) {
+            const employeesGrid = document.getElementById('employeesGrid');
+            if (!employeesGrid) return;
+            
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+            
+            data.employees.forEach(employee => {
+                        const employeeCard = document.createElement('div');
+                        employeeCard.className = 'employee-card';
+                        // Format performance rating with stars
+                        const performanceRating = employee.performance_rating || 0;
+                        const stars = '★'.repeat(Math.floor(performanceRating)) + '☆'.repeat(5 - Math.floor(performanceRating));
+                        const performanceClass = performanceRating >= 4 ? 'high-performance' : performanceRating >= 3 ? 'medium-performance' : 'low-performance';
+                        
+                        // Format KPIs with percentage
+                        const kpisValue = employee.kpis_met_pct || 0;
+                        const kpisClass = kpisValue >= 80 ? 'high-kpis' : kpisValue >= 60 ? 'medium-kpis' : 'low-kpis';
+                        
+                        // Format salary with proper currency
+                        const salaryValue = employee.current_salary ? `$${employee.current_salary.toLocaleString()}` : 'N/A';
+                        
+                        // Get department color
+                        const departmentColors = {
+                            'Marketing': '#e74c3c',
+                            'IT': '#3498db', 
+                            'HR': '#9b59b6',
+                            'Finance': '#f39c12',
+                            'Engineering': '#2ecc71',
+                            'Sales': '#e67e22',
+                            'Customer Success': '#1abc9c'
+                        };
+                        const deptColor = departmentColors[employee.department] || '#95a5a6';
+                        
+                        employeeCard.innerHTML = `
+                            <div class="employee-card-header" style="border-left: 4px solid ${deptColor}">
+                                <div class="employee-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div class="employee-title">
+                                    <h3>${employee.full_name || 'N/A'}</h3>
+                                    <p class="employee-role">${employee.role || 'N/A'}</p>
+                                    <span class="employee-id">ID: ${employee.employee_id}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="employee-metrics">
+                                <div class="metric-item">
+                                    <div class="metric-label">Department</div>
+                                    <div class="metric-value department-badge" style="background-color: ${deptColor}20; color: ${deptColor}; border: 1px solid ${deptColor}40">
+                                        ${employee.department || 'N/A'}
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-item">
+                                    <div class="metric-label">Performance</div>
+                                    <div class="metric-value performance-stars ${performanceClass}">
+                                        <span class="stars">${stars}</span>
+                                        <span class="rating">${performanceRating}/5</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-item">
+                                    <div class="metric-label">KPIs Met</div>
+                                    <div class="metric-value kpis-percentage ${kpisClass}">
+                                        <div class="kpis-bar">
+                                            <div class="kpis-fill" style="width: ${kpisValue}%"></div>
+                                        </div>
+                                        <span class="kpis-text">${kpisValue}%</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="metric-item">
+                                    <div class="metric-label">Salary</div>
+                                    <div class="metric-value salary-amount">
+                                        ${salaryValue}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="employee-actions">
+                                <button class="btn btn-primary btn-view" onclick="viewEmployeeDirect('${employee.employee_id}')">
+                                    <i class="fas fa-eye"></i>
+                                    <span>View Details</span>
+                                </button>
+                            </div>
+                        `;
+                        fragment.appendChild(employeeCard);
+                    });
+                    
+                    // Clear and append all at once for better performance
+                    employeesGrid.innerHTML = '';
+                    employeesGrid.appendChild(fragment);
+                    
+                    console.log(`Loaded ${data.employees.length} employees`);
+        }
         
         // Direct function to view employee
         window.viewEmployeeDirect = async function(employeeId) {
@@ -935,10 +1027,119 @@
                 
             } catch (error) {
                 console.error('Error loading employee details:', error);
-                alert('Error loading employee details: ' + error.message);
+                showErrorMessage('Unable to load employee details', 
+                    'We couldn\'t retrieve the complete information for this employee. The employee may not exist or there might be a temporary connection issue.');
             }
         };
         
+        // Enhanced loading state functions
+        window.showLoading = function(title = "Processing your request...", message = "Please wait while we analyze your data") {
+            const overlay = document.getElementById('loadingOverlay');
+            const titleEl = document.getElementById('loadingTitle');
+            const messageEl = document.getElementById('loadingMessage');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            if (titleEl) titleEl.textContent = title;
+            if (messageEl) messageEl.textContent = message;
+            if (progressFill) progressFill.style.width = '0%';
+            if (progressText) progressText.textContent = '0%';
+            
+            if (overlay) {
+                overlay.classList.add('active');
+                // Simulate progress
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 15;
+                    if (progress > 90) progress = 90;
+                    if (progressFill) progressFill.style.width = progress + '%';
+                    if (progressText) progressText.textContent = Math.round(progress) + '%';
+                }, 200);
+                
+                // Store interval for cleanup
+                overlay.dataset.progressInterval = interval;
+            }
+        };
+        
+        window.hideLoading = function() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                // Clear progress interval
+                if (overlay.dataset.progressInterval) {
+                    clearInterval(overlay.dataset.progressInterval);
+                }
+                
+                // Complete progress bar
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                if (progressFill) progressFill.style.width = '100%';
+                if (progressText) progressText.textContent = '100%';
+                
+                // Hide after a brief delay
+                setTimeout(() => {
+                    overlay.classList.remove('active');
+                }, 300);
+            }
+        };
+        
+        window.updateLoadingProgress = function(progress, message = null) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const messageEl = document.getElementById('loadingMessage');
+            
+            if (progressFill) progressFill.style.width = progress + '%';
+            if (progressText) progressText.textContent = Math.round(progress) + '%';
+            if (messageEl && message) messageEl.textContent = message;
+        };
+        
+        // Enhanced error message function
+        window.showErrorMessage = function(title, message, type = 'error') {
+            // Create error modal
+            const errorModal = document.createElement('div');
+            errorModal.className = 'error-modal';
+            errorModal.innerHTML = `
+                <div class="error-modal-content">
+                    <div class="error-header">
+                        <div class="error-icon ${type}">
+                            <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i>
+                        </div>
+                        <h3>${title}</h3>
+                        <button class="error-close" onclick="this.parentElement.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="error-body">
+                        <p>${message}</p>
+                        <div class="error-actions">
+                            <button class="btn btn-primary" onclick="this.parentElement.parentElement.parentElement.remove()">
+                                <i class="fas fa-check"></i>
+                                Got it
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(errorModal);
+            
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (errorModal.parentElement) {
+                    errorModal.remove();
+                }
+            }, 10000);
+        };
+        
+        // Success message function
+        window.showSuccessMessage = function(title, message) {
+            showErrorMessage(title, message, 'success');
+        };
+        
+        // Warning message function
+        window.showWarningMessage = function(title, message) {
+            showErrorMessage(title, message, 'warning');
+        };
+
         // Function to generate reports
         window.generateReport = async function(reportType) {
             console.log('Generating report:', reportType);

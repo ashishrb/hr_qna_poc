@@ -41,6 +41,24 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 query_engine = OllamaHRQueryEngine()
 search_client = LocalSearchClient()
 
+# Standardized response wrapper
+def create_api_response(data: Any, success: bool = True, message: str = None, error: str = None) -> Dict[str, Any]:
+    """Create standardized API response format"""
+    response = {
+        "success": success,
+        "timestamp": datetime.now().isoformat(),
+        "data": data
+    }
+    
+    if message:
+        response["message"] = message
+    
+    if error:
+        response["error"] = error
+        response["success"] = False
+    
+    return response
+
 # Pydantic models for request/response
 class QueryRequest(BaseModel):
     query: str
@@ -164,13 +182,17 @@ async def count_employees(
         
         count = await search_client.get_document_count(filters)
         
-        return {
-            "count": count,
-            "filters": filters
-        }
+        return create_api_response(
+            data={"count": count, "filters": filters},
+            message=f"Successfully counted {count} employees"
+        )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Count query failed: {str(e)}")
+        return create_api_response(
+            data=None,
+            success=False,
+            error=f"Count query failed: {str(e)}"
+        )
 
 @app.get("/api/analytics/departments")
 async def get_department_analytics():
@@ -234,14 +256,21 @@ async def get_department_analytics():
         # Sort by employee count
         departments.sort(key=lambda x: x["employee_count"], reverse=True)
         
-        return {
-            "departments": departments,
-            "total_departments": len(departments),
-            "total_employees": total_employees
-        }
+        return create_api_response(
+            data={
+                "departments": departments,
+                "total_departments": len(departments),
+                "total_employees": total_employees
+            },
+            message=f"Successfully analyzed {len(departments)} departments"
+        )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Department analytics failed: {str(e)}")
+        return create_api_response(
+            data=None,
+            success=False,
+            error=f"Department analytics failed: {str(e)}"
+        )
 
 @app.get("/api/analytics/performance")
 async def get_performance_analytics():
@@ -290,20 +319,27 @@ async def get_performance_analytics():
         high_performer_pct = round((high_performers / total_employees) * 100, 1) if total_employees > 0 else 0
         low_performer_pct = round((low_performers / total_employees) * 100, 1) if total_employees > 0 else 0
         
-        return {
-            "total_employees": total_employees,
-            "avg_performance": avg_performance,
-            "min_performance": min_performance,
-            "max_performance": max_performance,
-            "avg_kpis": avg_kpis,
-            "high_performers": high_performers,
-            "low_performers": low_performers,
-            "high_performer_pct": high_performer_pct,
-            "low_performer_pct": low_performer_pct
-        }
+        return create_api_response(
+            data={
+                "total_employees": total_employees,
+                "avg_performance": avg_performance,
+                "min_performance": min_performance,
+                "max_performance": max_performance,
+                "avg_kpis": avg_kpis,
+                "high_performers": high_performers,
+                "low_performers": low_performers,
+                "high_performer_pct": high_performer_pct,
+                "low_performer_pct": low_performer_pct
+            },
+            message=f"Successfully analyzed performance for {total_employees} employees"
+        )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Performance analytics failed: {str(e)}")
+        return create_api_response(
+            data=None,
+            success=False,
+            error=f"Performance analytics failed: {str(e)}"
+        )
 
 @app.get("/api/analytics/salary")
 async def get_salary_analytics():

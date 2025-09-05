@@ -15,7 +15,7 @@ class HRAnalyticsDashboard {
     }
 
     setupEventListeners() {
-        // Navigation
+        // Navigation - unified system
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -46,13 +46,15 @@ class HRAnalyticsDashboard {
         // Quick action buttons
         document.querySelectorAll('.action-card').forEach(card => {
             card.addEventListener('click', (e) => {
-                const text = card.querySelector('span').textContent;
-                if (text.includes('Ask AI Question')) {
-                    this.showSection('query');
-                } else if (text.includes('View Analytics')) {
-                    this.showSection('analytics');
-                } else if (text.includes('Browse Employees')) {
-                    this.showSection('employees');
+                const section = card.dataset.section;
+                if (section) {
+                    this.showSection(section);
+                } else {
+                    // Handle special cases
+                    const text = card.querySelector('span').textContent;
+                    if (text.includes('Generate Report')) {
+                        this.showSection('reports');
+                    }
                 }
             });
         });

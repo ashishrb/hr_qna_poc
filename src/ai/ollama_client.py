@@ -154,6 +154,39 @@ class OllamaClient:
         # Last resort
         return "llama3.2:3b"
     
+    def _validate_response(self, response: str, query_type: str) -> bool:
+        """Validate response quality based on query type"""
+        if not response or len(response.strip()) < 10:
+            return False
+        
+        # Check for error indicators
+        error_indicators = ["❌", "error", "failed", "unable to", "cannot"]
+        if any(indicator in response.lower() for indicator in error_indicators):
+            return False
+        
+        # Check for appropriate content based on query type
+        if query_type == "complex_analytics":
+            # Should contain structured data or analysis
+            return any(keyword in response.lower() for keyword in 
+                      ["analysis", "insights", "recommendations", "summary", "findings"])
+        elif query_type == "structured_queries":
+            # Should contain structured information
+            return any(keyword in response.lower() for keyword in 
+                      ["employee", "department", "performance", "salary", "data"])
+        
+        return True
+    
+    def _get_fallback_model(self, current_model: str, query_type: str) -> Optional[str]:
+        """Get a fallback model for the given query type"""
+        try:
+            model_list = self.model_config.get(query_type, self.model_config["default"])
+            current_index = model_list.index(current_model)
+            if current_index < len(model_list) - 1:
+                return model_list[current_index + 1]
+        except (ValueError, IndexError):
+            pass
+        return None
+    
     def generate_text(self, 
                      prompt: str, 
                      model: Optional[str] = None,
@@ -210,7 +243,22 @@ class OllamaClient:
                     
                     if response.status_code == 200:
                         result = response.json()
-                        return result['message']['content'].strip()
+                        generated_text = result['message']['content'].strip()
+                        
+                        # Validate response quality
+                        if self._validate_response(generated_text, query_type):
+                            print(f"✅ Generated response using {model} (attempt {attempt + 1})")
+                            return generated_text
+                        else:
+                            print(f"⚠️ Low quality response from {model}, trying fallback...")
+                            if attempt < self.max_retries - 1:
+                                # Try with a different model
+                                fallback_model = self._get_fallback_model(model, query_type)
+                                if fallback_model:
+                                    payload["model"] = fallback_model
+                                    continue
+                        
+                        return generated_text  # Return even if validation fails
                     else:
                         print(f"❌ Ollama API error (attempt {attempt + 1}): {response.status_code}")
                         if attempt < self.max_retries - 1:
