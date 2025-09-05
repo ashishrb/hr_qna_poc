@@ -82,9 +82,11 @@ class OllamaHRQueryEngine:
                 "intent": intent,
                 "entities": analysis.get("entities", {}),
                 "fields_analyzed": analysis.get("fields_to_analyze", []),
-                "results": results,
+                "search_results": results,
+                "results": results,  # Keep both for compatibility
                 "count": count,
                 "response": response,
+                "response_time": execution_time / 1000,  # Convert to seconds
                 "execution_time_ms": execution_time,
                 "status": "success"
             }
@@ -99,9 +101,11 @@ class OllamaHRQueryEngine:
                 "intent": "unknown",
                 "entities": {},
                 "fields_analyzed": [],
-                "results": [],
+                "search_results": [],
+                "results": [],  # Keep both for compatibility
                 "count": 0,
                 "response": f"I apologize, but I encountered an error: {str(e)}",
+                "response_time": execution_time / 1000,  # Convert to seconds
                 "execution_time_ms": execution_time,
                 "status": "error",
                 "error": error_msg
@@ -112,11 +116,11 @@ class OllamaHRQueryEngine:
         try:
             await mongodb_client.connect()
             
-            # Build aggregation pipeline
+            # Build aggregation pipeline to join personal and employment data
             pipeline = [
                 {
                     "$lookup": {
-                        "from": "employment",
+                        "from": "employee_employment_info",
                         "localField": "employee_id",
                         "foreignField": "employee_id",
                         "as": "employment"
@@ -150,13 +154,30 @@ class OllamaHRQueryEngine:
             # Add count stage
             pipeline.append({"$count": "total"})
             
-            collection = await mongodb_client.get_collection("personal_info")
+            # Execute aggregation
+            collection = await mongodb_client.get_collection("employee_personal_info")
             cursor = collection.aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             count = results[0]["total"] if results else 0
             
-            return [], count
+            # Get sample results for context (without count stage)
+            sample_pipeline = pipeline[:-1]  # Remove count stage
+            sample_pipeline.append({"$limit": 5})
+            sample_pipeline.append({
+                "$project": {
+                    "_id": {"$toString": "$_id"},
+                    "employee_id": 1,
+                    "full_name": 1,
+                    "department": "$employment.department",
+                    "role": "$employment.role"
+                }
+            })
+            
+            sample_cursor = collection.aggregate(sample_pipeline)
+            sample_results = await sample_cursor.to_list(length=None)
+            
+            return sample_results, count
             
         except Exception as e:
             print(f"   ❌ Count query failed: {e}")
@@ -226,60 +247,72 @@ class OllamaHRQueryEngine:
         try:
             await mongodb_client.connect()
             
-            # Build pipeline for ranking
+            # Build aggregation pipeline to join personal, employment, and performance data
             pipeline = [
                 {
                     "$lookup": {
-                        "from": "employment",
+                        "from": "employee_employment_info",
                         "localField": "employee_id",
                         "foreignField": "employee_id",
                         "as": "employment"
                     }
                 },
-                {"$unwind": {"path": "$employment", "preserveNullAndEmptyArrays": True}}
-            ]
-            
-            # Add performance data for ranking
-            pipeline.extend([
+                {"$unwind": {"path": "$employment", "preserveNullAndEmptyArrays": True}},
                 {
                     "$lookup": {
-                        "from": "performance",
+                        "from": "employee_performance_info",
                         "localField": "employee_id",
                         "foreignField": "employee_id",
                         "as": "performance"
                     }
                 },
                 {"$unwind": {"path": "$performance", "preserveNullAndEmptyArrays": True}}
-            ])
+            ]
             
-            # Add computed fields
-            pipeline.append({
-                "$addFields": {
-                    "performance_rating_num": {
-                        "$toInt": {"$ifNull": [{"$toInt": "$performance.performance_rating"}, 0]}
-                    }
-                }
-            })
+            # Add match conditions if any filters are specified
+            match_conditions = {}
+            entities = analysis.get("entities", {})
+            
+            if entities.get("departments"):
+                departments = entities["departments"]
+                if len(departments) == 1:
+                    match_conditions["employment.department"] = departments[0]
+                else:
+                    match_conditions["employment.department"] = {"$in": departments}
+            
+            if match_conditions:
+                pipeline.append({"$match": match_conditions})
+                print(f"   🎯 Applied filters: {match_conditions}")
             
             # Sort by performance rating (descending for top performers)
-            pipeline.append({"$sort": {"performance_rating_num": -1}})
+            pipeline.append({"$sort": {"performance.performance_rating": -1}})
             
-            # Limit results
-            limit = analysis.get("limit", 10)
+            # Limit results (default to 5 for top performers)
+            limit = 5
+            if "top" in analysis.get("query", "").lower():
+                # Extract number from query like "top 5", "top 10"
+                import re
+                match = re.search(r'top\s+(\d+)', analysis.get("query", "").lower())
+                if match:
+                    limit = int(match.group(1))
+            
             pipeline.append({"$limit": limit})
             
-            # Project useful fields
+            # Project useful fields and convert ObjectId to string
             pipeline.append({
                 "$project": {
+                    "_id": {"$toString": "$_id"},
                     "employee_id": 1,
                     "full_name": 1,
                     "department": "$employment.department",
                     "role": "$employment.role",
-                    "performance_rating": "$performance_rating_num"
+                    "performance_rating": "$performance.performance_rating",
+                    "kpis_met_pct": "$performance.kpis_met_pct",
+                    "awards": "$performance.awards"
                 }
             })
             
-            collection = await mongodb_client.get_collection("personal_info")
+            collection = await mongodb_client.get_collection("employee_personal_info")
             cursor = collection.aggregate(pipeline)
             results = await cursor.to_list(length=None)
             

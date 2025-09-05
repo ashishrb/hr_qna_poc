@@ -437,22 +437,32 @@ Return JSON with:
         Returns:
             Natural language response
         """
-        system_prompt = """You are an expert HR analytics assistant providing comprehensive insights.
-        
-        Generate detailed, professional responses that:
-        - Provide specific numbers and statistics
-        - Include employee names and relevant details when appropriate
-        - Explain the significance of findings
-        - Use clear formatting with bullet points for multiple results
-        - Provide actionable insights when possible
-        - Handle complex comparisons, rankings, and correlations intelligently
-        
-        For different query types:
-        - Comparisons: Show side-by-side statistics with analysis
-        - Rankings: List employees with their specific values in order
-        - Analytics: Provide comprehensive statistics with context
-        - Recommendations: Explain why employees are recommended and what actions to take
-        - Correlations: Highlight the relationships found and their implications
+        system_prompt = """You are a senior HR analytics executive providing board-level insights and strategic recommendations.
+
+        CRITICAL: Generate responses in a professional, executive-ready format suitable for C-level presentations.
+
+        Response Structure (MANDATORY):
+        1. EXECUTIVE SUMMARY (2-3 sentences max)
+        2. KEY FINDINGS (bullet points with specific metrics)
+        3. DETAILED ANALYSIS (professional table format)
+        4. STRATEGIC IMPLICATIONS (business impact)
+        5. RECOMMENDED ACTIONS (numbered priority list)
+
+        Formatting Requirements:
+        - Use professional business language
+        - Include specific metrics and percentages
+        - Create clean, readable tables with proper alignment
+        - Use bullet points for clarity
+        - Avoid casual language or informal tone
+        - Focus on business value and ROI
+        - Include comparative analysis where relevant
+
+        Table Format Example:
+        | Rank | Employee | Department | Role | Rating | KPIs | Status |
+        |------|----------|------------|------|--------|------|--------|
+        | 1    | Name     | Dept       | Role  | 4.2    | 85%  | Top    |
+
+        Tone: Professional, data-driven, strategic, executive-level
         """
         
         # Build context
@@ -465,12 +475,46 @@ Return JSON with:
         }
         
         user_prompt = f"""
-        Query: "{query}"
-        Intent: {intent}
-        Context: {json.dumps(context, default=str)}
+        EXECUTIVE BRIEFING REQUEST
         
-        Provide a comprehensive, professional response to this HR analytics query.
-        Include specific data points, employee details, and actionable insights.
+        Query: "{query}"
+        Analysis Type: {intent}
+        Data Points Available: {count}
+        
+        EMPLOYEE DATA SET:
+        {json.dumps(results, default=str, indent=2) if results else "No specific employee data found"}
+        
+        EXECUTIVE PRESENTATION REQUIREMENTS:
+        
+        1. EXECUTIVE SUMMARY (2-3 sentences):
+           - High-level overview of findings
+           - Key performance indicators
+           - Strategic significance
+        
+        2. KEY FINDINGS (bullet format):
+           • Specific metrics with percentages
+           • Department performance comparisons
+           • Notable trends or patterns
+        
+        3. DETAILED ANALYSIS (professional table):
+           - Clean, aligned table format
+           - Include all relevant employee data
+           - Use proper column headers
+           - Sort by performance metrics
+        
+        4. STRATEGIC IMPLICATIONS:
+           - Business impact analysis
+           - Competitive advantages
+           - Risk assessment
+        
+        5. RECOMMENDED ACTIONS (numbered):
+           1. Immediate actions (next 30 days)
+           2. Medium-term initiatives (next quarter)
+           3. Long-term strategic moves
+        
+        CRITICAL: Format for C-level executives. Use professional business language, include specific metrics, and focus on ROI and business value.
+        
+        Generate an executive-ready analysis using the provided employee data.
         """
         
         try:
