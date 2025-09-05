@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Q&A System - Employee Analytics Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-users-cog"></i>
+                <span>HR Q&A System</span>
+            </div>
+            <div class="nav-menu">
+                <a href="#dashboard" class="nav-link active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    Dashboard
+                </a>
+                <a href="#query" class="nav-link" data-section="query">
+                    <i class="fas fa-search"></i>
+                    Query
+                </a>
+                <a href="#analytics" class="nav-link" data-section="analytics">
+                    <i class="fas fa-chart-bar"></i>
+                    Analytics
+                </a>
+                <a href="#employees" class="nav-link" data-section="employees">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-status">
+                <span class="status-indicator" id="connectionStatus">
+                    <i class="fas fa-circle"></i>
+                    Connecting...
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="section-header">
+                <h1><i class="fas fa-chart-line"></i> HR Analytics Dashboard</h1>
+                <p>Comprehensive employee data insights and analytics</p>
+            </div>
+
+            <!-- Quick Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalEmployees">-</h3>
+                        <p>Total Employees</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalDepartments">-</h3>
+                        <p>Departments</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="totalRoles">-</h3>
+                        <p>Job Roles</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3 id="avgPerformance">-</h3>
+                        <p>Avg Performance</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <button class="action-btn" onclick="showSection('query')">
+                        <i class="fas fa-search"></i>
+                        Ask a Question
+                    </button>
+                    <button class="action-btn" onclick="showSection('analytics')">
+                        <i class="fas fa-chart-bar"></i>
+                        View Analytics
+                    </button>
+                    <button class="action-btn" onclick="showSection('employees')">
+                        <i class="fas fa-users"></i>
+                        Browse Employees
+                    </button>
+                    <button class="action-btn" onclick="runSampleQueries()">
+                        <i class="fas fa-play"></i>
+                        Sample Queries
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2>Recent Queries</h2>
+                <div class="activity-list" id="recentQueries">
+                    <div class="activity-item">
+                        <i class="fas fa-search"></i>
+                        <span>No recent queries</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Query Section -->
+        <section id="query" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-search"></i> Natural Language Query</h1>
+                <p>Ask questions about your employees in natural language</p>
+            </div>
+
+            <div class="query-container">
+                <div class="query-input-container">
+                    <div class="query-input-wrapper">
+                        <textarea 
+                            id="queryInput" 
+                            placeholder="Ask anything about your employees... (e.g., 'How many developers work in IT?', 'Show me top performers', 'Compare salaries between departments')"
+                            rows="3"
+                        ></textarea>
+                        <button id="submitQuery" class="query-submit-btn">
+                            <i class="fas fa-paper-plane"></i>
+                            Ask
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Query Suggestions -->
+                <div class="query-suggestions">
+                    <h3>Try these examples:</h3>
+                    <div class="suggestion-tags">
+                        <span class="suggestion-tag" onclick="setQuery('How many employees work in IT department?')">Count IT employees</span>
+                        <span class="suggestion-tag" onclick="setQuery('Show me developers with AWS certification')">AWS developers</span>
+                        <span class="suggestion-tag" onclick="setQuery('Top 5 performers in the company')">Top performers</span>
+                        <span class="suggestion-tag" onclick="setQuery('Compare average salary between IT and Sales')">Salary comparison</span>
+                        <span class="suggestion-tag" onclick="setQuery('Who has the highest leave balance?')">Leave balance</span>
+                        <span class="suggestion-tag" onclick="setQuery('Employees who joined in the last 6 months')">Recent joiners</span>
+                    </div>
+                </div>
+
+                <!-- Query Results -->
+                <div class="query-results" id="queryResults" style="display: none;">
+                    <div class="results-header">
+                        <h3>Query Results</h3>
+                        <div class="results-meta">
+                            <span id="queryIntent"></span>
+                            <span id="queryTime"></span>
+                        </div>
+                    </div>
+                    <div class="results-content" id="resultsContent"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analytics Section -->
+        <section id="analytics" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-chart-bar"></i> Analytics Dashboard</h1>
+                <p>Comprehensive employee analytics and insights</p>
+            </div>
+
+            <div class="analytics-grid">
+                <!-- Department Distribution -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-building"></i> Department Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="departmentChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Role Distribution -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-briefcase"></i> Role Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="roleChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Performance Analytics -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-star"></i> Performance Analytics</h3>
+                    <div class="performance-stats" id="performanceStats">
+                        <div class="perf-stat">
+                            <span class="perf-label">Average Rating:</span>
+                            <span class="perf-value" id="avgRating">-</span>
+                        </div>
+                        <div class="perf-stat">
+                            <span class="perf-label">Top Performers:</span>
+                            <span class="perf-value" id="topPerformers">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Distribution -->
+                <div class="analytics-card">
+                    <h3><i class="fas fa-map-marker-alt"></i> Location Distribution</h3>
+                    <div class="location-list" id="locationList">
+                        <div class="location-item">
+                            <span>Loading locations...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Employees Section -->
+        <section id="employees" class="content-section">
+            <div class="section-header">
+                <h1><i class="fas fa-users"></i> Employee Directory</h1>
+                <p>Browse and search employee information</p>
+            </div>
+
+            <div class="employee-filters">
+                <div class="filter-group">
+                    <label for="deptFilter">Department:</label>
+                    <select id="deptFilter">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="roleFilter">Role:</label>
+                    <select id="roleFilter">
+                        <option value="">All Roles</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="searchInput">Search:</label>
+                    <input type="text" id="searchInput" placeholder="Search employees...">
+                </div>
+                <button id="applyFilters" class="filter-btn">
+                    <i class="fas fa-filter"></i>
+                    Apply Filters
+                </button>
+            </div>
+
+            <div class="employee-grid" id="employeeGrid">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading employees...</span>
+                </div>
+            </div>
+
+            <div class="pagination" id="pagination" style="display: none;">
+                <button id="prevPage" class="page-btn" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                    Previous
+                </button>
+                <span id="pageInfo">Page 1 of 1</span>
+                <button id="nextPage" class="page-btn">
+                    Next
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Processing your request...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

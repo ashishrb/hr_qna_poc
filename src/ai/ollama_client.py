@@ -1,0 +1,485 @@
+# src/ai/ollama_client.py
+"""
+Ollama-based AI client to replace Azure OpenAI dependencies
+Supports local LLM inference for HR Q&A system
+"""
+
+import requests
+import json
+import time
+from typing import List, Dict, Any, Optional, Union
+import sys
+import os
+
+# Add parent directories to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+class OllamaClient:
+    """Client for interacting with Ollama models"""
+    
+    def __init__(self, base_url: str = "http://localhost:11434"):
+        self.base_url = base_url
+        self.default_model = "llama3.2:3b"  # Lightweight model suitable for HR queries
+        self.embedding_model = "nomic-embed-text"  # Embedding model
+        self.timeout = 30
+        self.max_retries = 3
+        
+        # Test connection on initialization
+        self._test_connection()
+    
+    def _test_connection(self):
+        """Test connection to Ollama server"""
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                print("✅ Connected to Ollama server")
+                self._check_available_models()
+            else:
+                print(f"❌ Ollama server returned status {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to connect to Ollama server: {e}")
+            print("💡 Make sure Ollama is running: ollama serve")
+    
+    def _check_available_models(self):
+        """Check which models are available"""
+        try:
+            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            if response.status_code == 200:
+                models = response.json().get('models', [])
+                model_names = [model['name'] for model in models]
+                
+                print(f"📋 Available models: {model_names}")
+                
+                # Check if our preferred models are available
+                if not any('llama3.2' in name for name in model_names):
+                    print("⚠️ llama3.2 not found, using first available model")
+                    if model_names:
+                        self.default_model = model_names[0]
+                
+                if not any('nomic-embed' in name for name in model_names):
+                    print("⚠️ nomic-embed-text not found for embeddings")
+                    self.embedding_model = None
+                    
+        except Exception as e:
+            print(f"❌ Failed to check available models: {e}")
+    
+    def generate_text(self, 
+                     prompt: str, 
+                     model: Optional[str] = None,
+                     max_tokens: int = 500,
+                     temperature: float = 0.3,
+                     system_prompt: Optional[str] = None) -> str:
+        """
+        Generate text using Ollama model
+        
+        Args:
+            prompt: User prompt
+            model: Model name (optional)
+            max_tokens: Maximum tokens to generate
+            temperature: Sampling temperature
+            system_prompt: System prompt (optional)
+            
+        Returns:
+            Generated text
+        """
+        model = model or self.default_model
+        
+        try:
+            # Prepare messages
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
+            
+            # Prepare request payload
+            payload = {
+                "model": model,
+                "messages": messages,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                    "num_predict": max_tokens
+                }
+            }
+            
+            # Make request with retries
+            for attempt in range(self.max_retries):
+                try:
+                    response = requests.post(
+                        f"{self.base_url}/api/chat",
+                        json=payload,
+                        timeout=self.timeout
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        return result['message']['content'].strip()
+                    else:
+                        print(f"❌ Ollama API error (attempt {attempt + 1}): {response.status_code}")
+                        if attempt < self.max_retries - 1:
+                            time.sleep(1)
+                        
+                except requests.exceptions.Timeout:
+                    print(f"⏰ Request timeout (attempt {attempt + 1})")
+                    if attempt < self.max_retries - 1:
+                        time.sleep(2)
+                        
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ Request error (attempt {attempt + 1}): {e}")
+                    if attempt < self.max_retries - 1:
+                        time.sleep(1)
+            
+            return "I apologize, but I'm unable to process your request at the moment."
+            
+        except Exception as e:
+            print(f"❌ Text generation failed: {e}")
+            return "I encountered an error while processing your request."
+    
+    def generate_embedding(self, text: str, model: Optional[str] = None) -> List[float]:
+        """
+        Generate embedding for text
+        
+        Args:
+            text: Input text
+            model: Embedding model name (optional)
+            
+        Returns:
+            Embedding vector
+        """
+        model = model or self.embedding_model
+        
+        if not model:
+            print("⚠️ No embedding model available")
+            return [0.0] * 384  # Return zero vector
+        
+        try:
+            payload = {
+                "model": model,
+                "prompt": text
+            }
+            
+            response = requests.post(
+                f"{self.base_url}/api/embeddings",
+                json=payload,
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result['embedding']
+            else:
+                print(f"❌ Embedding generation failed: {response.status_code}")
+                return [0.0] * 384
+                
+        except Exception as e:
+            print(f"❌ Embedding generation error: {e}")
+            return [0.0] * 384
+    
+    def generate_batch_embeddings(self, texts: List[str], model: Optional[str] = None) -> List[List[float]]:
+        """
+        Generate embeddings for multiple texts
+        
+        Args:
+            texts: List of input texts
+            model: Embedding model name (optional)
+            
+        Returns:
+            List of embedding vectors
+        """
+        embeddings = []
+        
+        for i, text in enumerate(texts):
+            print(f"   📊 Generating embedding {i + 1}/{len(texts)}")
+            embedding = self.generate_embedding(text, model)
+            embeddings.append(embedding)
+            
+            # Small delay to avoid overwhelming the server
+            time.sleep(0.1)
+        
+        return embeddings
+    
+    def analyze_query_intent(self, query: str) -> Dict[str, Any]:
+        """
+        Analyze query intent using Ollama
+        
+        Args:
+            query: Natural language query
+            
+        Returns:
+            Analysis result with intent, entities, etc.
+        """
+        system_prompt = """You are an expert HR analytics specialist. Analyze queries about employee data comprehensively.
+
+QUERY TYPES:
+- count_query: "How many", "Count of", "Total number"
+- comparison: "Compare X vs Y", "Difference between", "X versus Y"
+- ranking: "Top 10", "Bottom 5", "Highest", "Lowest", "Best", "Worst"
+- correlation: "High X with low Y", "Employees who have X and Y", complex relationships
+- recommendation: "Who needs", "Suggest", "Should we", "Recommend"
+- trend_analysis: "Recent", "Last 6 months", "New joiners", "Over time"
+- complex_filter: Multiple criteria (department AND skills AND experience)
+- analytics: Average, mean, median, statistics
+- employee_search: Simple "Find" or "Show me"
+
+DATA FIELDS:
+- Personal: age, gender, location
+- Employment: department, role, work_mode, employment_type, joining_date
+- Skills: certifications, courses_completed, learning_hours_ytd
+- Experience: total_experience_years, years_in_current_company, known_skills_count
+- Performance: performance_rating, awards, kpis_met_pct
+- Engagement: current_project, engagement_score, manager_feedback
+- Compensation: current_salary, bonus, total_ctc
+- Attendance: leave_balance, leave_days_taken, monthly_attendance_pct
+- Attrition: attrition_risk_score, exit_intent_flag
+
+Return JSON with:
+{
+    "intent": "query_type",
+    "entities": {
+        "departments": ["IT", "Sales"],
+        "roles": ["Developer"],
+        "skills": ["AWS", "Python"],
+        "locations": ["Remote"],
+        "experience_range": {"min": 5, "max": 10},
+        "performance_range": {"min": 4, "max": 5},
+        "age_range": {"min": 25, "max": 35}
+    },
+    "fields_to_analyze": ["performance_rating", "current_salary"],
+    "comparison_groups": ["IT", "Sales"],
+    "filters": {
+        "department": "IT",
+        "experience_min": 5
+    },
+    "sorting": {
+        "field": "performance_rating",
+        "order": "desc"
+    },
+    "aggregation_type": "average|count|max|min|sum",
+    "limit": 10
+}"""
+
+        user_prompt = f"""
+        Analyze this HR query comprehensively: "{query}"
+        
+        Extract all possible intent, entities, fields to analyze, filters, and requirements.
+        Be thorough in detecting comparison groups, data fields needed, and query complexity.
+        """
+        
+        try:
+            response = self.generate_text(
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                max_tokens=800,
+                temperature=0.1
+            )
+            
+            # Try to parse JSON response
+            try:
+                analysis = json.loads(response)
+                return analysis
+            except json.JSONDecodeError:
+                # Fallback to basic analysis
+                return self._fallback_query_analysis(query)
+                
+        except Exception as e:
+            print(f"❌ Query analysis failed: {e}")
+            return self._fallback_query_analysis(query)
+    
+    def _fallback_query_analysis(self, query: str) -> Dict[str, Any]:
+        """Fallback query analysis using pattern matching"""
+        query_lower = query.lower()
+        
+        # Basic intent detection
+        if any(word in query_lower for word in ["compare", "vs", "versus", "difference"]):
+            intent = "comparison"
+        elif any(word in query_lower for word in ["top", "bottom", "highest", "lowest", "best", "worst"]):
+            intent = "ranking"
+        elif any(word in query_lower for word in ["how many", "count", "total"]):
+            intent = "count_query"
+        elif any(word in query_lower for word in ["average", "mean", "statistics"]):
+            intent = "analytics"
+        else:
+            intent = "employee_search"
+        
+        # Basic entity extraction
+        entities = {}
+        departments = ["Sales", "IT", "Operations", "HR", "Finance", "Legal", "Engineering", "Marketing", "Support"]
+        for dept in departments:
+            if dept.lower() in query_lower:
+                if "departments" not in entities:
+                    entities["departments"] = []
+                entities["departments"].append(dept)
+        
+        return {
+            "intent": intent,
+            "entities": entities,
+            "fields_to_analyze": ["performance_rating"],
+            "comparison_groups": [],
+            "filters": {},
+            "sorting": {},
+            "aggregation_type": None,
+            "limit": 10
+        }
+    
+    def generate_response(self, 
+                         query: str, 
+                         results: List[Dict[str, Any]], 
+                         count: int,
+                         intent: str) -> str:
+        """
+        Generate natural language response for query results
+        
+        Args:
+            query: Original query
+            results: Query results
+            count: Number of results
+            intent: Query intent
+            
+        Returns:
+            Natural language response
+        """
+        system_prompt = """You are an expert HR analytics assistant providing comprehensive insights.
+        
+        Generate detailed, professional responses that:
+        - Provide specific numbers and statistics
+        - Include employee names and relevant details when appropriate
+        - Explain the significance of findings
+        - Use clear formatting with bullet points for multiple results
+        - Provide actionable insights when possible
+        - Handle complex comparisons, rankings, and correlations intelligently
+        
+        For different query types:
+        - Comparisons: Show side-by-side statistics with analysis
+        - Rankings: List employees with their specific values in order
+        - Analytics: Provide comprehensive statistics with context
+        - Recommendations: Explain why employees are recommended and what actions to take
+        - Correlations: Highlight the relationships found and their implications
+        """
+        
+        # Build context
+        context = {
+            "query": query,
+            "intent": intent,
+            "count": count,
+            "has_results": len(results) > 0,
+            "results": results[:5] if results else []  # Limit for context
+        }
+        
+        user_prompt = f"""
+        Query: "{query}"
+        Intent: {intent}
+        Context: {json.dumps(context, default=str)}
+        
+        Provide a comprehensive, professional response to this HR analytics query.
+        Include specific data points, employee details, and actionable insights.
+        """
+        
+        try:
+            response = self.generate_text(
+                prompt=user_prompt,
+                system_prompt=system_prompt,
+                max_tokens=600,
+                temperature=0.3
+            )
+            return response.strip()
+            
+        except Exception as e:
+            print(f"❌ Response generation failed: {e}")
+            return self._generate_fallback_response(query, results, count, intent)
+    
+    def _generate_fallback_response(self, 
+                                  query: str, 
+                                  results: List[Dict[str, Any]], 
+                                  count: int,
+                                  intent: str) -> str:
+        """Generate fallback response when AI fails"""
+        if intent == "count_query":
+            return f"Found {count} employees matching your criteria."
+        
+        elif intent == "comparison" and results:
+            response_lines = ["Comparison Results:"]
+            for result in results:
+                group_name = result.get("_id", "Unknown")
+                emp_count = result.get("count", 0)
+                response_lines.append(f"• {group_name}: {emp_count} employees")
+                
+                # Add specific statistics if available
+                if "avg_salary" in result:
+                    response_lines.append(f"  - Average Salary: ${result['avg_salary']:,.0f}")
+                if "avg_rating" in result:
+                    response_lines.append(f"  - Average Rating: {result['avg_rating']:.1f}")
+            
+            return "\n".join(response_lines)
+        
+        elif intent == "ranking" and results:
+            response_lines = ["Top Results:"]
+            for i, result in enumerate(results[:10], 1):
+                name = result.get("full_name", "Unknown")
+                dept = result.get("department", "N/A")
+                
+                # Add specific value based on field analyzed
+                value_text = ""
+                if "performance_rating" in result:
+                    value_text = f" - Rating: {result['performance_rating']}"
+                elif "salary" in result:
+                    value_text = f" - Salary: ${result['salary']:,}"
+                elif "leave_balance" in result:
+                    value_text = f" - Leave Balance: {result['leave_balance']} days"
+                
+                response_lines.append(f"{i}. {name} ({dept}){value_text}")
+            
+            return "\n".join(response_lines)
+        
+        elif intent == "analytics" and results:
+            result = results[0]
+            response_lines = ["Analytics Summary:"]
+            response_lines.append(f"• Total Employees: {result.get('count', 0)}")
+            
+            # Add specific analytics
+            if "avg_performance" in result:
+                response_lines.append(f"• Average Performance: {result['avg_performance']:.1f}")
+            if "avg_salary" in result:
+                response_lines.append(f"• Average Salary: ${result['avg_salary']:,.0f}")
+            
+            return "\n".join(response_lines)
+        
+        elif count > 0:
+            return f"Found {count} employees matching your criteria. Use more specific queries for detailed information."
+        
+        else:
+            return "No employees found matching your criteria. Try adjusting your search parameters."
+
+# Global instance
+ollama_client = OllamaClient()
+
+def test_ollama_connection():
+    """Test Ollama connection and models"""
+    print("🧪 Testing Ollama Connection")
+    print("=" * 40)
+    
+    try:
+        # Test basic text generation
+        print("📝 Testing text generation...")
+        response = ollama_client.generate_text("Hello, how are you?")
+        print(f"✅ Text generation: {response[:100]}...")
+        
+        # Test query analysis
+        print("🔍 Testing query analysis...")
+        analysis = ollama_client.analyze_query_intent("How many employees work in IT?")
+        print(f"✅ Query analysis: {analysis['intent']}")
+        
+        # Test embedding generation (if available)
+        if ollama_client.embedding_model:
+            print("🧠 Testing embedding generation...")
+            embedding = ollama_client.generate_embedding("test text")
+            print(f"✅ Embedding generated: {len(embedding)} dimensions")
+        else:
+            print("⚠️ Embedding model not available")
+        
+        print("\n🎉 Ollama connection test completed successfully!")
+        
+    except Exception as e:
+        print(f"❌ Ollama test failed: {e}")
+
+if __name__ == "__main__":
+    test_ollama_connection()

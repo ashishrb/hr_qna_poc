@@ -1,6 +1,8 @@
 # src/api/main.py
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 import asyncio
@@ -10,7 +12,7 @@ import os
 
 # Add parent directories to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from src.query.query_engine import HRQueryEngine
+from src.query.ollama_query_engine import ollama_query_engine
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -28,8 +30,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Initialize query engine
-query_engine = HRQueryEngine()
+query_engine = ollama_query_engine
 
 # Pydantic models for request/response
 class QueryRequest(BaseModel):
@@ -62,9 +67,14 @@ class EmployeeResponse(BaseModel):
     query: str
 
 # API Endpoints
-@app.get("/", response_model=HealthResponse)
+@app.get("/")
 async def root():
-    """Root endpoint with API information"""
+    """Serve the main HTML page"""
+    return FileResponse('static/index.html')
+
+@app.get("/api", response_model=HealthResponse)
+async def api_info():
+    """API information endpoint"""
     return HealthResponse(
         status="active",
         message="HR Q&A System API is running",
