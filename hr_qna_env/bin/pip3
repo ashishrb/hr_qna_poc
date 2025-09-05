@@ -1,0 +1,8 @@
+#!/mnt/data_storage/git-clone-projects/hr_qna_poc/hr_qna_env/bin/python
+# -*- coding: utf-8 -*-
+import re
+import sys
+from pip._internal.cli.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())

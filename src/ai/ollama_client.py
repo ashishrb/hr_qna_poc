@@ -15,14 +15,52 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 class OllamaClient:
-    """Client for interacting with Ollama models"""
+    """Client for interacting with Ollama models with smart model selection"""
     
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
-        self.default_model = "llama3.2:3b"  # Lightweight model suitable for HR queries
-        self.embedding_model = "nomic-embed-text"  # Embedding model
         self.timeout = 30
         self.max_retries = 3
+        
+        # Model hierarchy for different use cases
+        self.model_config = {
+            "complex_analytics": [
+                "gpt-oss:20B",           # Highest accuracy for complex queries
+                "llama3:8b",             # Excellent fallback
+                "mistral:7b-instruct-v0.2-q4_K_M"  # Good instruction following
+            ],
+            "structured_queries": [
+                "mistral:7b-instruct-v0.2-q4_K_M",  # Best for structured queries
+                "llama3:8b",             # Excellent general performance
+                "llama3.2:3b-instruct-q4_K_M"  # Balanced performance
+            ],
+            "data_calculations": [
+                "codellama:7b-instruct-q4_K_M",  # Optimized for data processing
+                "qwen2.5-coder:1.5b",    # Fast calculations
+                "llama3.2:3b-instruct-q4_K_M"  # General fallback
+            ],
+            "simple_queries": [
+                "qwen2.5-coder:1.5b",   # Fastest response
+                "llama3.2:1b-instruct-q4_K_M",  # Lightweight
+                "llama3.2:3b-instruct-q4_K_M"  # Balanced
+            ],
+            "multilingual": [
+                "qwen3:latest",          # Multilingual support
+                "llama3:8b",             # Good general performance
+                "mistral:7b-instruct-v0.2-q4_K_M"  # Instruction following
+            ],
+            "default": [
+                "llama3.2:3b-instruct-q4_K_M",  # Balanced default
+                "mistral:7b-instruct-v0.2-q4_K_M",  # Good instruction following
+                "llama3:8b"              # High quality fallback
+            ]
+        }
+        
+        # Embedding model
+        self.embedding_model = "nomic-embed-text:v1.5"
+        
+        # Available models cache
+        self.available_models = []
         
         # Test connection on initialization
         self._test_connection()
@@ -41,48 +79,107 @@ class OllamaClient:
             print("💡 Make sure Ollama is running: ollama serve")
     
     def _check_available_models(self):
-        """Check which models are available"""
+        """Check which models are available and update configuration"""
         try:
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
             if response.status_code == 200:
                 models = response.json().get('models', [])
-                model_names = [model['name'] for model in models]
+                self.available_models = [model['name'] for model in models]
                 
-                print(f"📋 Available models: {model_names}")
+                print(f"📋 Available models: {self.available_models}")
                 
-                # Check if our preferred models are available
-                if not any('llama3.2' in name for name in model_names):
-                    print("⚠️ llama3.2 not found, using first available model")
-                    if model_names:
-                        self.default_model = model_names[0]
-                
-                if not any('nomic-embed' in name for name in model_names):
+                # Validate embedding model
+                if not any('nomic-embed' in name for name in self.available_models):
                     print("⚠️ nomic-embed-text not found for embeddings")
                     self.embedding_model = None
+                else:
+                    # Find the exact embedding model name
+                    for model in self.available_models:
+                        if 'nomic-embed' in model:
+                            self.embedding_model = model
+                            break
+                
+                # Validate model configurations
+                self._validate_model_configs()
                     
         except Exception as e:
             print(f"❌ Failed to check available models: {e}")
+    
+    def _validate_model_configs(self):
+        """Validate and update model configurations based on available models"""
+        for category, models in self.model_config.items():
+            available_in_category = [model for model in models if model in self.available_models]
+            if available_in_category:
+                print(f"✅ {category}: {available_in_category[0]} (primary)")
+            else:
+                print(f"⚠️ {category}: No preferred models available")
+    
+    def select_optimal_model(self, query_type: str = "default", query_complexity: str = "medium") -> str:
+        """
+        Select the optimal model based on query type and complexity
+        
+        Args:
+            query_type: Type of query (complex_analytics, structured_queries, etc.)
+            query_complexity: Complexity level (low, medium, high)
+            
+        Returns:
+            Selected model name
+        """
+        # Determine model category based on query type and complexity
+        if query_complexity == "high" or query_type in ["complex_analytics", "correlation"]:
+            category = "complex_analytics"
+        elif query_type in ["data_calculations", "analytics"]:
+            category = "data_calculations"
+        elif query_type in ["simple_queries", "count_query"]:
+            category = "simple_queries"
+        elif query_type in ["multilingual"]:
+            category = "multilingual"
+        elif query_type in ["structured_queries", "comparison", "ranking"]:
+            category = "structured_queries"
+        else:
+            category = "default"
+        
+        # Select first available model in the category
+        for model in self.model_config[category]:
+            if model in self.available_models:
+                print(f"🎯 Selected {model} for {category} ({query_type})")
+                return model
+        
+        # Fallback to any available model
+        if self.available_models:
+            fallback = self.available_models[0]
+            print(f"⚠️ Using fallback model: {fallback}")
+            return fallback
+        
+        # Last resort
+        return "llama3.2:3b"
     
     def generate_text(self, 
                      prompt: str, 
                      model: Optional[str] = None,
                      max_tokens: int = 500,
                      temperature: float = 0.3,
-                     system_prompt: Optional[str] = None) -> str:
+                     system_prompt: Optional[str] = None,
+                     query_type: str = "default",
+                     query_complexity: str = "medium") -> str:
         """
-        Generate text using Ollama model
+        Generate text using Ollama model with smart model selection
         
         Args:
             prompt: User prompt
-            model: Model name (optional)
+            model: Model name (optional, will auto-select if not provided)
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             system_prompt: System prompt (optional)
+            query_type: Type of query for model selection
+            query_complexity: Complexity level for model selection
             
         Returns:
             Generated text
         """
-        model = model or self.default_model
+        # Smart model selection if no model specified
+        if not model:
+            model = self.select_optimal_model(query_type, query_complexity)
         
         try:
             # Prepare messages
@@ -270,7 +367,9 @@ Return JSON with:
                 prompt=user_prompt,
                 system_prompt=system_prompt,
                 max_tokens=800,
-                temperature=0.1
+                temperature=0.1,
+                query_type="structured_queries",
+                query_complexity="medium"
             )
             
             # Try to parse JSON response
@@ -375,11 +474,16 @@ Return JSON with:
         """
         
         try:
+            # Determine query complexity based on results
+            complexity = "high" if len(results) > 10 or intent in ["correlation", "complex_filter"] else "medium"
+            
             response = self.generate_text(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
                 max_tokens=600,
-                temperature=0.3
+                temperature=0.3,
+                query_type="complex_analytics" if complexity == "high" else "structured_queries",
+                query_complexity=complexity
             )
             return response.strip()
             

@@ -19,7 +19,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from src.ai.ollama_client import ollama_client
 from src.database.mongodb_client import mongodb_client
-from src.core.models import QueryType, DataField
+from src.core.models import QueryType
 
 class OllamaHRQueryEngine:
     """HR Query Engine using Ollama for AI processing"""

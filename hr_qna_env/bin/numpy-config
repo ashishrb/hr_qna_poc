@@ -1,0 +1,7 @@
+#!/mnt/data_storage/git-clone-projects/hr_qna_poc/hr_qna_env/bin/python
+import sys
+from numpy._configtool import main
+if __name__ == '__main__':
+    if sys.argv[0].endswith('.exe'):
+        sys.argv[0] = sys.argv[0][:-4]
+    sys.exit(main())
