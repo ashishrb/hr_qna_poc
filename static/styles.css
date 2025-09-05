@@ -2269,3 +2269,41 @@ body {
         padding: 0.5rem;
     }
 }
+/* AI Analytics Content Styling */
+.ai-predictions, .talent-content, .workforce-content, .risk-content, .insight-content {
+    line-height: 1.6;
+    color: #333;
+    font-size: 0.95em;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.ai-predictions strong, .talent-content strong, .workforce-content strong, .risk-content strong, .insight-content strong {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.ai-predictions em, .talent-content em, .workforce-content em, .risk-content em, .insight-content em {
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.ai-predictions br, .talent-content br, .workforce-content br, .risk-content br, .insight-content br {
+    margin: 8px 0;
+}
+
+/* Confidence Badge Styling */
+.confidence-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}

@@ -90,6 +90,7 @@ class HRAnalyticsDashboard {
 
         // Show selected section
         const targetSection = document.getElementById(sectionName);
+        
         if (targetSection) {
             targetSection.classList.add('active');
             this.currentSection = sectionName;
@@ -427,10 +428,13 @@ class HRAnalyticsDashboard {
     }
 
     async loadAdvancedAnalytics() {
+        console.log('loadAdvancedAnalytics called');
         try {
             this.showLoading(true);
+            console.log('Loading state set to true');
             
             // Load advanced AI-powered analytics
+            console.log('Fetching advanced analytics data...');
             const [executiveDashboard, predictiveInsights, talentIntelligence, workforceOptimization, riskAssessment] = await Promise.all([
                 fetch('/api/analytics/executive-dashboard').then(r => r.json()),
                 fetch('/api/analytics/predictive-insights').then(r => r.json()),
@@ -439,6 +443,7 @@ class HRAnalyticsDashboard {
                 fetch('/api/analytics/risk-assessment').then(r => r.json())
             ]);
             
+            console.log('All analytics data fetched successfully');
             this.displayAdvancedAnalytics({
                 executiveDashboard,
                 predictiveInsights,
@@ -452,6 +457,7 @@ class HRAnalyticsDashboard {
             this.showNotification('Error loading advanced analytics', 'error');
         } finally {
             this.showLoading(false);
+            console.log('Loading state set to false');
         }
     }
 
@@ -613,8 +619,13 @@ class HRAnalyticsDashboard {
     }
 
     displayAdvancedAnalytics(data) {
+        console.log('displayAdvancedAnalytics called with data:', data);
         const analyticsContainer = document.getElementById('analyticsContent');
-        if (!analyticsContainer) return;
+        if (!analyticsContainer) {
+            console.error('analyticsContent element not found');
+            return;
+        }
+        console.log('analyticsContent element found, updating content...');
 
         analyticsContainer.innerHTML = `
             <div class="advanced-analytics-grid">
@@ -1165,8 +1176,32 @@ class HRAnalyticsDashboard {
 
 // Global functions for HTML onclick handlers
 function showSection(sectionName) {
+    console.log('showSection called with:', sectionName);
+    
+    // Simple fallback if dashboard object is not available
     if (window.dashboard) {
         window.dashboard.showSection(sectionName);
+    } else {
+        console.log('Dashboard not available, using fallback');
+        // Fallback navigation
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        
+        const targetSection = document.getElementById(sectionName);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            const activeNav = document.querySelector(`[data-section="${sectionName}"]`);
+            if (activeNav) {
+                activeNav.classList.add('active');
+            }
+        }
     }
 }
 

@@ -23,27 +23,27 @@
         </div>
         
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" data-section="dashboard">
+            <a href="#dashboard" class="nav-item active" data-section="dashboard" onclick="showSection('dashboard')">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#query" class="nav-item" data-section="query">
+            <a href="#query" class="nav-item" data-section="query" onclick="showSection('query')">
                 <i class="fas fa-search"></i>
                 <span>AI Query</span>
             </a>
-            <a href="#analytics" class="nav-item" data-section="analytics">
+            <a href="#analytics" class="nav-item" data-section="analytics" onclick="showSection('analytics')">
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
-            <a href="#advanced-analytics" class="nav-item" data-section="advanced-analytics">
+            <a href="#advanced-analytics" class="nav-item" data-section="advanced-analytics" onclick="showSection('advanced-analytics')">
                 <i class="fas fa-brain"></i>
                 <span>AI Analytics</span>
             </a>
-            <a href="#employees" class="nav-item" data-section="employees">
+            <a href="#employees" class="nav-item" data-section="employees" onclick="showSection('employees')">
                 <i class="fas fa-users"></i>
                 <span>Employees</span>
             </a>
-            <a href="#reports" class="nav-item" data-section="reports">
+            <a href="#reports" class="nav-item" data-section="reports" onclick="showSection('reports')">
                 <i class="fas fa-file-alt"></i>
                 <span>Reports</span>
             </a>
@@ -401,7 +401,7 @@
                         </div>
                         <h3>Employee Summary</h3>
                         <p>Complete employee overview report</p>
-                        <button class="btn btn-primary">Generate</button>
+                        <button class="btn btn-primary" onclick="generateReport('employee-summary')">Generate</button>
                     </div>
                     
                     <div class="report-card">
@@ -410,7 +410,7 @@
                         </div>
                         <h3>Performance Report</h3>
                         <p>Performance metrics and analysis</p>
-                        <button class="btn btn-primary">Generate</button>
+                        <button class="btn btn-primary" onclick="generateReport('performance')">Generate</button>
                     </div>
                     
                     <div class="report-card">
@@ -419,7 +419,7 @@
                         </div>
                         <h3>Compensation Report</h3>
                         <p>Salary and benefits analysis</p>
-                        <button class="btn btn-primary">Generate</button>
+                        <button class="btn btn-primary" onclick="generateReport('compensation')">Generate</button>
                     </div>
                 </div>
             </div>
@@ -495,5 +495,577 @@
     </div>
 
     <script src="/static/script.js"></script>
+    
+    <!-- Simple Navigation Script -->
+    <script>
+        // Simple navigation function that works independently
+        function simpleShowSection(sectionName) {
+            console.log('Simple navigation to:', sectionName);
+            
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionName);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log('Section activated:', sectionName);
+                
+                // Update navigation
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                const activeNav = document.querySelector(`[data-section="${sectionName}"]`);
+                if (activeNav) {
+                    activeNav.classList.add('active');
+                    console.log('Navigation updated for:', sectionName);
+                }
+                
+                // Load section data if dashboard is available
+                if (window.dashboard && window.dashboard.loadSectionData) {
+                    console.log('Loading data for section:', sectionName);
+                    window.dashboard.loadSectionData(sectionName);
+                } else {
+                    console.log('Dashboard not available for data loading');
+                    
+                    // Direct data loading for specific sections
+                    if (sectionName === 'employees') {
+                        setTimeout(() => {
+                            window.loadEmployeesDirect();
+                        }, 100);
+                    } else if (sectionName === 'advanced-analytics') {
+                        setTimeout(() => {
+                            window.loadAdvancedAnalyticsDirect();
+                        }, 100);
+                    }
+                }
+            } else {
+                console.error('Section not found:', sectionName);
+            }
+        }
+        
+        // Override the showSection function
+        window.showSection = simpleShowSection;
+        
+        // Test navigation on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, testing navigation...');
+            
+            // Test if sections exist
+            const sections = ['dashboard', 'query', 'analytics', 'advanced-analytics', 'employees', 'reports'];
+            sections.forEach(section => {
+                const element = document.getElementById(section);
+                console.log(`Section ${section}:`, element ? 'Found' : 'Not found');
+            });
+            
+            // Test if navigation items exist
+            const navItems = document.querySelectorAll('.nav-item');
+            console.log('Navigation items found:', navItems.length);
+            
+            // Initialize dashboard data loading
+            setTimeout(async () => {
+                console.log('Initializing dashboard data...');
+                try {
+                    // Load employee count
+                    const response = await fetch('/api/employee-count');
+                    const data = await response.json();
+                    console.log('Employee count data:', data);
+                    
+                    const totalEmployeesElement = document.getElementById('totalEmployees');
+                    if (totalEmployeesElement) {
+                        totalEmployeesElement.textContent = data.count || 0;
+                        console.log('Updated total employees to:', data.count);
+                    }
+                    
+                    // Load department count
+                    const deptResponse = await fetch('/api/analytics/departments');
+                    const deptData = await deptResponse.json();
+                    console.log('Department data:', deptData);
+                    
+                    const totalDepartmentsElement = document.getElementById('totalDepartments');
+                    if (totalDepartmentsElement) {
+                        totalDepartmentsElement.textContent = deptData.total_departments || 0;
+                        console.log('Updated total departments to:', deptData.total_departments);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+            }, 1000);
+            
+            // Test advanced analytics endpoint
+            setTimeout(async () => {
+                try {
+                    console.log('Testing advanced analytics endpoint...');
+                    const response = await fetch('/api/analytics/executive-dashboard');
+                    const data = await response.json();
+                    console.log('Advanced analytics endpoint working:', data.timestamp ? 'Yes' : 'No');
+                } catch (error) {
+                    console.error('Advanced analytics endpoint error:', error);
+                }
+            }, 2000);
+        });
+        
+        // Global test function for advanced analytics
+        window.testAdvancedAnalytics = async function() {
+            console.log('Testing advanced analytics loading...');
+            try {
+                const response = await fetch('/api/analytics/executive-dashboard');
+                const data = await response.json();
+                console.log('Executive Dashboard Data:', data);
+                return data;
+            } catch (error) {
+                console.error('Error testing advanced analytics:', error);
+                return null;
+            }
+        };
+        
+        // Direct function to load advanced analytics
+        window.loadAdvancedAnalyticsDirect = async function() {
+            console.log('Direct advanced analytics loading...');
+            try {
+                const analyticsContainer = document.getElementById('analyticsContent');
+                if (!analyticsContainer) {
+                    console.error('analyticsContent element not found');
+                    return;
+                }
+                
+                // Show loading state
+                analyticsContainer.innerHTML = `
+                    <div class="loading-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading AI Analytics...</p>
+                    </div>
+                `;
+                
+                // Load all analytics endpoints
+                console.log('Fetching advanced analytics data...');
+                const [executiveDashboard, predictiveInsights, talentIntelligence, workforceOptimization, riskAssessment] = await Promise.all([
+                    fetch('/api/analytics/executive-dashboard').then(r => r.json()),
+                    fetch('/api/analytics/predictive-insights').then(r => r.json()),
+                    fetch('/api/analytics/talent-intelligence').then(r => r.json()),
+                    fetch('/api/analytics/workforce-optimization').then(r => r.json()),
+                    fetch('/api/analytics/risk-assessment').then(r => r.json())
+                ]);
+                
+                console.log('All analytics data fetched successfully');
+                
+                // Display the analytics
+                analyticsContainer.innerHTML = `
+                    <div class="advanced-analytics-grid">
+                        <!-- Executive Dashboard -->
+                        <div class="analytics-card executive-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-line"></i> Executive Dashboard</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="ai-insights">
+                                    <h4>AI-Powered Insights</h4>
+                                    <div class="insight-content">
+                                        ${executiveDashboard.ai_insights?.analysis || 'Executive insights will be generated based on comprehensive workforce data analysis.'}
+                                    </div>
+                                </div>
+                                <div class="recommendations">
+                                    <h4>Strategic Recommendations</h4>
+                                    <div class="recommendation-list">
+                                        ${executiveDashboard.recommendations?.map(rec => `
+                                            <div class="recommendation-item">
+                                                <span class="rec-category">${rec.category}</span>
+                                                <span class="rec-title">${rec.title}</span>
+                                                <span class="rec-action">${rec.action}</span>
+                                            </div>
+                                        `).join('') || '<div class="recommendation-item"><span class="rec-category">Strategic</span><span class="rec-title">Data-Driven Insights</span><span class="rec-action">Continue monitoring workforce metrics</span></div>'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Predictive Insights -->
+                        <div class="analytics-card predictive-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-crystal-ball"></i> Predictive Insights</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="prediction-content">
+                                    <div class="confidence-badge">
+                                        ${predictiveInsights.confidence_level || 'High'} Confidence
+                                    </div>
+                                    <div class="ai-predictions">
+                                        ${predictiveInsights.predictions ? predictiveInsights.predictions.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') : 'Predictive analysis will be generated based on current workforce trends and performance metrics.'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Talent Intelligence -->
+                        <div class="analytics-card talent-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-brain"></i> Talent Intelligence</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="talent-content">
+                                    ${talentIntelligence.talent_intelligence ? talentIntelligence.talent_intelligence.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') : 'Talent intelligence analysis will be generated based on employee performance, engagement, and development metrics.'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Workforce Optimization -->
+                        <div class="analytics-card workforce-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-users-cog"></i> Workforce Optimization</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="workforce-content">
+                                    ${workforceOptimization.optimization_plan ? workforceOptimization.optimization_plan.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') : 'Workforce optimization recommendations will be generated based on current performance metrics and organizational goals.'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Risk Assessment -->
+                        <div class="analytics-card risk-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-exclamation-triangle"></i> Risk Assessment</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="risk-content">
+                                    ${riskAssessment.risk_assessment ? riskAssessment.risk_assessment.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>') : 'Risk assessment will be generated based on current workforce metrics and organizational risk factors.'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                console.log('Advanced analytics displayed successfully');
+                
+            } catch (error) {
+                console.error('Error loading advanced analytics:', error);
+                const analyticsContainer = document.getElementById('analyticsContent');
+                if (analyticsContainer) {
+                    analyticsContainer.innerHTML = `
+                        <div class="error-state">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>Error loading AI Analytics: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        };
+        
+        // Direct function to submit query
+        window.submitQueryDirect = async function() {
+            console.log('Direct query submission...');
+            const queryInput = document.getElementById('queryInput');
+            if (!queryInput) {
+                console.error('Query input not found');
+                return;
+            }
+            
+            const query = queryInput.value.trim();
+            if (!query) {
+                alert('Please enter a query');
+                return;
+            }
+            
+            try {
+                console.log('Submitting query:', query);
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 5
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Query response:', data);
+                
+                // Display results
+                const resultsContainer = document.getElementById('queryResults');
+                if (resultsContainer) {
+                    resultsContainer.innerHTML = `
+                        <div class="query-response">
+                            <div class="response-header">
+                                <h3>AI Response</h3>
+                                <span class="response-time">${data.response_time ? `(${data.response_time.toFixed(2)}s)` : ''}</span>
+                            </div>
+                            <div class="ai-response">
+                                ${data.response || 'No response received'}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error submitting query:', error);
+                alert('Error submitting query: ' + error.message);
+            }
+        };
+        
+        // Override the submitQuery function
+        window.submitQuery = window.submitQueryDirect;
+        
+        // Direct function to load employees
+        window.loadEmployeesDirect = async function() {
+            console.log('Direct employees loading...');
+            try {
+                const response = await fetch('/api/employees?limit=20');
+                const data = await response.json();
+                console.log('Employees data:', data);
+                
+                const employeesGrid = document.getElementById('employeesGrid');
+                if (employeesGrid) {
+                    employeesGrid.innerHTML = '';
+                    
+                    data.employees.forEach(employee => {
+                        const employeeCard = document.createElement('div');
+                        employeeCard.className = 'employee-card';
+                        employeeCard.innerHTML = `
+                            <div class="employee-header">
+                                <h3>${employee.full_name || 'N/A'}</h3>
+                                <span class="employee-id">${employee.employee_id}</span>
+                            </div>
+                            <div class="employee-details">
+                                <div class="detail-row">
+                                    <span class="label">Department:</span>
+                                    <span class="value">${employee.department || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Role:</span>
+                                    <span class="value">${employee.role || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Performance:</span>
+                                    <span class="value">${employee.performance_rating || 'N/A'}/5</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">KPIs:</span>
+                                    <span class="value">${employee.kpis_met_pct || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="label">Salary:</span>
+                                    <span class="value">$${employee.current_salary ? employee.current_salary.toLocaleString() : 'N/A'}</span>
+                                </div>
+                            </div>
+                            <div class="employee-actions">
+                                <button class="btn btn-primary" onclick="viewEmployeeDirect('${employee.employee_id}')">
+                                    <i class="fas fa-eye"></i> View Details
+                                </button>
+                            </div>
+                        `;
+                        employeesGrid.appendChild(employeeCard);
+                    });
+                    
+                    console.log(`Loaded ${data.employees.length} employees`);
+                }
+                
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                alert('Error loading employees: ' + error.message);
+            }
+        };
+        
+        // Direct function to view employee
+        window.viewEmployeeDirect = async function(employeeId) {
+            console.log('Direct employee view for:', employeeId);
+            try {
+                const response = await fetch(`/api/employee/${employeeId}`);
+                const employee = await response.json();
+                console.log('Employee details:', employee);
+                
+                // Create modal
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Employee Details</h2>
+                            <span class="close" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</span>
+                        </div>
+                        <div class="modal-body">
+                            <div class="employee-detail-grid">
+                                <div class="detail-section">
+                                    <h3>Personal Information</h3>
+                                    <div class="detail-row"><span class="label">Name:</span><span class="value">${employee.full_name || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Email:</span><span class="value">${employee.email || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Phone:</span><span class="value">${employee.contact_number || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Age:</span><span class="value">${employee.age || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Gender:</span><span class="value">${employee.gender || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Location:</span><span class="value">${employee.location || 'N/A'}</span></div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>Employment Information</h3>
+                                    <div class="detail-row"><span class="label">Department:</span><span class="value">${employee.department || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Role:</span><span class="value">${employee.role || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Grade/Band:</span><span class="value">${employee.grade_band || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Employment Type:</span><span class="value">${employee.employment_type || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Work Mode:</span><span class="value">${employee.work_mode || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Date of Joining:</span><span class="value">${employee.joining_date ? new Date(employee.joining_date).toLocaleDateString() : 'N/A'}</span></div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>Performance & Compensation</h3>
+                                    <div class="detail-row"><span class="label">Performance Rating:</span><span class="value">${employee.performance_rating || 'N/A'}/5</span></div>
+                                    <div class="detail-row"><span class="label">KPIs Met:</span><span class="value">${employee.kpis_met_pct || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Current Salary:</span><span class="value">$${employee.current_salary ? employee.current_salary.toLocaleString() : 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Awards:</span><span class="value">${employee.awards || 'None'}</span></div>
+                                </div>
+                                <div class="detail-section">
+                                    <h3>Learning & Engagement</h3>
+                                    <div class="detail-row"><span class="label">Courses Completed:</span><span class="value">${employee.courses_completed || 'N/A'}</span></div>
+                                    <div class="detail-row"><span class="label">Certifications:</span><span class="value">${employee.certifications || 'None'}</span></div>
+                                    <div class="detail-row"><span class="label">Engagement Score:</span><span class="value">${employee.engagement_score || 'N/A'}/5</span></div>
+                                    <div class="detail-row"><span class="label">Attrition Risk:</span><span class="value">${employee.attrition_risk_score || 'N/A'}/10</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                modal.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading employee details:', error);
+                alert('Error loading employee details: ' + error.message);
+            }
+        };
+        
+        // Function to generate reports
+        window.generateReport = async function(reportType) {
+            console.log('Generating report:', reportType);
+            
+            try {
+                let reportData = {};
+                let reportTitle = '';
+                let reportContent = '';
+                
+                switch (reportType) {
+                    case 'employee-summary':
+                        reportTitle = 'Employee Summary Report';
+                        const empResponse = await fetch('/api/employees?limit=100');
+                        const empData = await empResponse.json();
+                        reportData = empData;
+                        reportContent = `
+                            <h2>Employee Summary Report</h2>
+                            <p><strong>Total Employees:</strong> ${empData.employees.length}</p>
+                            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                            <h3>Employee List:</h3>
+                            <table border="1" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <th>Employee ID</th>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Role</th>
+                                    <th>Performance Rating</th>
+                                </tr>
+                                ${empData.employees.map(emp => `
+                                    <tr>
+                                        <td>${emp.employee_id}</td>
+                                        <td>${emp.first_name} ${emp.last_name}</td>
+                                        <td>${emp.department || 'N/A'}</td>
+                                        <td>${emp.role || 'N/A'}</td>
+                                        <td>${emp.performance_rating || 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        `;
+                        break;
+                        
+                    case 'performance':
+                        reportTitle = 'Performance Report';
+                        const perfResponse = await fetch('/api/analytics/performance');
+                        const perfData = await perfResponse.json();
+                        reportData = perfData;
+                        reportContent = `
+                            <h2>Performance Report</h2>
+                            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                            <h3>Performance Metrics:</h3>
+                            <ul>
+                                <li><strong>Total Employees:</strong> ${perfData.total_employees}</li>
+                                <li><strong>Average Performance:</strong> ${perfData.avg_performance}/5</li>
+                                <li><strong>High Performers:</strong> ${perfData.high_performers} (${perfData.high_performer_pct}%)</li>
+                                <li><strong>Low Performers:</strong> ${perfData.low_performers} (${perfData.low_performer_pct}%)</li>
+                                <li><strong>Average KPIs Met:</strong> ${perfData.avg_kpis}%</li>
+                                <li><strong>Performance Range:</strong> ${perfData.min_performance} - ${perfData.max_performance}</li>
+                            </ul>
+                        `;
+                        break;
+                        
+                    case 'compensation':
+                        reportTitle = 'Compensation Report';
+                        const compResponse = await fetch('/api/analytics/salary');
+                        const compData = await compResponse.json();
+                        reportData = compData;
+                        reportContent = `
+                            <h2>Compensation Report</h2>
+                            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                            <h3>Salary Metrics:</h3>
+                            <ul>
+                                <li><strong>Total Employees:</strong> ${compData.total_employees}</li>
+                                <li><strong>Average Salary:</strong> $${compData.avg_salary.toLocaleString()}</li>
+                                <li><strong>Minimum Salary:</strong> $${compData.min_salary.toLocaleString()}</li>
+                                <li><strong>Maximum Salary:</strong> $${compData.max_salary.toLocaleString()}</li>
+                                <li><strong>Salary Range:</strong> $${compData.salary_range.toLocaleString()}</li>
+                            </ul>
+                            <h3>Department Salary Breakdown:</h3>
+                            <table border="1" style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <th>Department</th>
+                                    <th>Employee Count</th>
+                                    <th>Average Salary</th>
+                                    <th>Min Salary</th>
+                                    <th>Max Salary</th>
+                                </tr>
+                                ${compData.department_analytics.map(dept => `
+                                    <tr>
+                                        <td>${dept.department}</td>
+                                        <td>${dept.employee_count}</td>
+                                        <td>$${dept.avg_salary.toLocaleString()}</td>
+                                        <td>$${dept.min_salary.toLocaleString()}</td>
+                                        <td>$${dept.max_salary.toLocaleString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        `;
+                        break;
+                }
+                
+                // Create and display report
+                const reportWindow = window.open('', '_blank');
+                reportWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>${reportTitle}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; margin: 20px; }
+                                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                                th { background-color: #f2f2f2; }
+                            </style>
+                        </head>
+                        <body>
+                            ${reportContent}
+                        </body>
+                    </html>
+                `);
+                reportWindow.document.close();
+                
+                console.log('Report generated successfully:', reportType);
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('Error generating report: ' + error.message);
+            }
+        };
+    </script>
 </body>
 </html>
